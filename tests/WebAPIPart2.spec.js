@@ -1,24 +1,38 @@
 const { test, expect } = require('@playwright/test');
-
-
-
-
-test('@web Client App login', async ({ page }) => {
-   //js file- Login js, DashboardPage
-   const email = 'nkapasi@test.com';
-  const password = '!Test1234';
-  const productName = 'iphone 13 pro';
-   const products = page.locator(".card-body");
-   await page.goto("https://rahulshettyacademy.com/client/#/auth/login");
+const { timeout } = require('../playwright.config');
+let webContext;
+let products;
+const email = 'nkapasi@test.com';
+const password = '!Test1234';
+const productName = 'iphone 13 pro';
+test.beforeAll(async({browser}) =>
+{
+    const context = await browser.newContext();
+    const page = await context.newPage();
+    await page.goto("https://rahulshettyacademy.com/client");
    await page.locator("#userEmail").fill(email);
    await page.locator("#userPassword").fill(password);
    await page.locator("[value='Login']").click();
    await page.waitForLoadState('networkidle');
+   await context.storageState({path: "applicationstate.json"})
+   webContext = await browser.newContext({storageState: "applicationstate.json"});
+
+})
+test('@Get Page Title', async () => {
+    const page = await webContext.newPage();
+    await page.goto("https://rahulshettyacademy.com/client");
+      products = page.locator(".card-body");
    await page.locator(".card-body b").first().waitFor();
-   const titles = await page.locator(".card-body b").allTextContents();
+   const titles = await page.locator(".card-body b").allTextContents({ timeout: 1000 });
    console.log(titles); 
-   const count = await products.count();
-   for (let i = 0; i < count; ++i) {
+})
+
+test('Client App login', async () => {   
+   //js file- Login js, DashboardPage
+    const page = await webContext.newPage();
+    await page.goto("https://rahulshettyacademy.com/client");
+    const count = await products.count();
+    for (let i = 0; i < count; ++i) {
       if (await products.nth(i).locator("b").textContent() === productName) {
          //add to cart
          await products.nth(i).locator("text= Add To Cart").click();
@@ -68,11 +82,4 @@ test('@web Client App login', async ({ page }) => {
    expect(orderId.includes(orderIdDetails)).toBeTruthy();
 
 });
-
-
-
-
-
-
-
 

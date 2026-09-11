@@ -1,7 +1,15 @@
-class APIUtils {
-    constructor(apiContext, loginPayLoad) {
+import { Page, Locator } from "@playwright/test";
+
+export class APIUtils {
+    apiContext:any;
+    loginPayLoad:string;
+
+
+    constructor(apiContext:string, loginPayLoad:string) {
         this.apiContext = apiContext;
         this.loginPayLoad = loginPayLoad;
+        
+
     }
 
     async getToken() {
@@ -14,8 +22,9 @@ class APIUtils {
         return token;
     }
 
-    async createOrder(orderPayLoad) {
-        let response = {};
+    async createOrder(orderPayLoad:string) {
+        let response = {token:String, orderId:String};
+ 
         response.token = await this.getToken();
         const orderResponse = await this.apiContext.post("https://rahulshettyacademy.com/api/ecom/order/create-order", {
             data: orderPayLoad,

@@ -1,9 +1,9 @@
 const { test, expect } = require('@playwright/test');
 //import { loginPage } from '../pageObjects/loginPage';
-const { loginPage } = require('../pageObjects/loginPage');
+const { loginPage } = require('../pageobjects/LoginPage.js');
 const {dataset}= JSON.parse(JSON.stringify(require('../utils/externalData.json')));
 const {customtest} = require('../utils/test-base');
-test('@Webst Client App login', async ({ page }) => {
+test('Client App login', async ({ page }) => {
    //js file- Login js, DashboardPage
 
    const products = page.locator(".card-body");

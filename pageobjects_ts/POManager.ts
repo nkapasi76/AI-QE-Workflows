@@ -1,11 +1,20 @@
-const {LoginPage} = require('./LoginPage');
-const {DashboardPage} = require('./DashboardPage_old');
-const {OrdersHistoryPage} = require('./OrdersHistoryPage');
-const {OrdersReviewPage} = require('./OrdersReviewPage');
-const {CartPage} = require('./CartPage');
-class POManager
+import  {LoginPage} from './LoginPage';
+import {DashboardPage} from'./DashboardPage_old';
+import {OrdersHistoryPage} from './OrdersHistoryPage';
+import {OrdersReviewPage} from './OrdersReviewPage';
+import  {CartPage} from './CartPage';
+import { Page } from '@playwright/test';
+
+export class POManager
 {
-constructor(page)
+    page:Page
+    loginPage:LoginPage
+    dashboardPage:DashboardPage
+    ordersHistoryPage:OrdersHistoryPage
+    ordersReviewPage:OrdersReviewPage
+    cartPage: CartPage
+
+constructor(page:any)
 {
     this.page = page;
     this.loginPage = new LoginPage(this.page);

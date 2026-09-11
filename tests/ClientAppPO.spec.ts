@@ -1,14 +1,17 @@
- const {test, expect} = require('@playwright/test');
- const {customtest1} = require('../utils/test-base copy.js');
- const {POManager} = require('../pageobjects/POManager');
+ import {Page, test, expect} from '@playwright/test';
+ import {customTest} from '../utils_ts/test-base.ts';
+ import {POManager} from'../pageobjects_ts/POManager.ts';
+ 
  //Json->string->js object
  const dataset =  JSON.parse(JSON.stringify(require("../utils/placeorderTestData.json")));
 for(const data of dataset)
 {
- test(`Client App login for ${data.productName}`, async ({page})=>
+ customTest(`Client App login for ${data.productName}`, async ({page:Page})=>
  {
-   const poManager = new POManager(page);
-     const products = page.locator(".card-body");
+  
+
+   const poManager = new POManager(Page);
+     const products = Page.locator(".card-body");
      const loginPage = poManager.getLoginPage();
      await loginPage.goTo();
      await loginPage.validLogin(data.username,data.password);
@@ -19,10 +22,10 @@ for(const data of dataset)
     const cartPage = poManager.getCartPage();
     await cartPage.VerifyProductIsDisplayed(data.productName);
     await cartPage.Checkout();
-
+    let orderId: any;
     const ordersReviewPage = poManager.getOrdersReviewPage();
     await ordersReviewPage.searchCountryAndSelect("ind","India");
-    const orderId = await ordersReviewPage.SubmitAndGetOrderId();
+    orderId = await ordersReviewPage.SubmitAndGetOrderId();
    console.log(orderId);
    await dashboardPage.navigateToOrders();
    const ordersHistoryPage = poManager.getOrdersHistoryPage();
@@ -31,19 +34,20 @@ for(const data of dataset)
  });
 }
 
- customtest1(`Client App login`, async ({page,testDataForOrder})=>
+ customTest(`Client App login`, async ({page:Page,testdatafororder})=>
+
  {
-   const poManager = new POManager(page);
+   const poManager = new POManager(Page);
     //js file- Login js, DashboardPage
-     const products = page.locator(".card-body");
+     const products = Page.locator(".card-body");
      const loginPage = poManager.getLoginPage();
      await loginPage.goTo();
-     await loginPage.validLogin(testDataForOrder.username,testDataForOrder.password);
+    await loginPage.validLogin(testdatafororder.username,testdatafororder.password);
      const dashboardPage = poManager.getDashboardPage();
-     await dashboardPage.searchProductAddCart(testDataForOrder.productName);
+    await dashboardPage.searchProductAddCart(testdatafororder.productName);
      await dashboardPage.navigateToCart();
 
     const cartPage = poManager.getCartPage();
-    await cartPage.VerifyProductIsDisplayed(testDataForOrder.productName);
+    await cartPage.VerifyProductIsDisplayed(testdatafororder.productName);
     await cartPage.Checkout();
 })

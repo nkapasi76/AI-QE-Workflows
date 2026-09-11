@@ -1,19 +1,26 @@
-class OrdersHistoryPage
+import { Locator, Page,expect } from "@playwright/test";
+
+export class OrdersHistoryPage
 {
-constructor(page)
+    page:Page
+    ordersTable:Locator
+    rows:Locator
+    orderdIdDetails:Locator
+
+constructor(page:Page)
 {
     this.page = page;
 this.ordersTable = page.locator("tbody");
 this.rows = page.locator("tbody tr");
 this.orderdIdDetails =page.locator(".col-text");
 }
-async searchOrderAndSelect(orderId)
+async searchOrderAndSelect(orderId:string)
 {
-
+let rowOrderId:any
     await this.ordersTable.waitFor();
 for(let i =0; i<await this.rows.count(); ++i)
  {
-    const rowOrderId =await this.rows.nth(i).locator("th").textContent();
+     rowOrderId =await this.rows.nth(i).locator("th").textContent();
     if (orderId.includes(rowOrderId))
     {
         await this.rows.nth(i).locator("button").first().click();

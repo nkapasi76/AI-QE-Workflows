@@ -1,6 +1,6 @@
 const { test, expect } = require('@playwright/test');
 
-test('@Webst buy iPhone 13 pro', async ({ page }) => {
+test('buy iPhone 13 pro', async ({ page }) => {
   const email = 'nkapasi@test.com';
   const password = '!Test1234';
   const productName = 'iphone 13 pro';
