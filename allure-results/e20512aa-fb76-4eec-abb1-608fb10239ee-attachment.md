@@ -1,0 +1,185 @@
+# Instructions
+
+- Following Playwright test failed.
+- Explain why, be concise, respect Playwright best practices.
+- Provide a snippet of code with the fix, if possible.
+
+# Test info
+
+- Name: tests/ClientApp.spec.js >> @web Client App login
+- Location: tests/ClientApp.spec.js:6:1
+
+# Error details
+
+```
+Test timeout of 30000ms exceeded.
+```
+
+```
+Error: page.goto: Test timeout of 30000ms exceeded.
+Call log:
+  - navigating to "https://rahulshettyacademy.com/client/#/auth/login", waiting until "load"
+
+```
+
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - generic: Ecom
+      - generic [ref=e9]:
+        - link " dummywebsite@rahulshettyacademy.com" [ref=e11] [cursor=pointer]:
+          - /url: emailto:dummywebsite@rahulshettyacademy.com
+          - generic [ref=e12]: 
+          - text: dummywebsite@rahulshettyacademy.com
+        - generic [ref=e13]:
+          - link "" [ref=e14] [cursor=pointer]:
+            - /url: "#"
+          - link "" [ref=e16] [cursor=pointer]:
+            - /url: "#"
+          - link "" [ref=e18] [cursor=pointer]:
+            - /url: "#"
+          - link "" [ref=e20] [cursor=pointer]:
+            - /url: "#"
+  - generic [ref=e22]:
+    - generic [ref=e23]:
+      - heading "We Make Your Shopping Simple" [level=3]
+      - heading [level=1] [ref=e24]:
+        - text: Practice Website for
+        - emphasis [ref=e25]: Rahul Shetty Academy
+        - text: Students
+      - link "Register" [ref=e26] [cursor=pointer]:
+        - /url: "#/auth/register"
+    - generic [ref=e28]:
+      - paragraph [ref=e29]:
+        - generic [ref=e30]: Register to sign in with your personal account
+      - generic [ref=e31]:
+        - heading "Log in" [level=1] [ref=e32]
+        - generic [ref=e33]:
+          - generic [ref=e34]:
+            - generic [ref=e35]: Email
+            - textbox "email@example.com" [ref=e36]
+          - generic [ref=e37]:
+            - generic [ref=e38]: Password
+            - textbox "enter your passsword" [ref=e39]
+          - button "Login" [ref=e40] [cursor=pointer]
+        - link "Forgot password?" [ref=e41] [cursor=pointer]:
+          - /url: "#/auth/password-new"
+        - paragraph [ref=e42] [cursor=pointer]: Don't have an account? Register here
+  - generic [ref=e43]:
+    - heading "Why People Choose Us?" [level=1] [ref=e46]
+    - generic [ref=e47]:
+      - generic [ref=e48]:
+        - generic [ref=e49]: 
+        - generic [ref=e51]:
+          - heading "3546540" [level=1]
+          - paragraph [ref=e52]: Successfull Orders
+      - generic [ref=e53]:
+        - generic [ref=e54]: 
+        - generic [ref=e56]:
+          - heading "37653" [level=1]
+          - paragraph [ref=e57]: Customers
+      - generic [ref=e58]:
+        - generic [ref=e59]: 
+        - generic [ref=e61]:
+          - heading "3243" [level=1]
+          - paragraph [ref=e62]: Sellers
+    - generic [ref=e63]:
+      - generic [ref=e64]:
+        - generic [ref=e65]: 
+        - generic [ref=e67]:
+          - heading "4500+" [level=1]
+          - paragraph [ref=e68]: Daily Orders
+      - generic [ref=e69]:
+        - generic [ref=e70]: 
+        - generic [ref=e72]:
+          - heading "500+" [level=1]
+          - paragraph [ref=e73]: Daily New Customer Joining
+```
+
+# Test source
+
+```ts
+  1  | const { test, expect } = require('@playwright/test');
+  2  | 
+  3  | 
+  4  | 
+  5  | 
+  6  | test('@web Client App login', async ({ page }) => {
+  7  |    //js file- Login js, DashboardPage
+  8  |    const email = 'nkapasi@test.com';
+  9  |   const password = '!Test1234';
+  10 |   const productName = 'iphone 13 pro';
+  11 |    const products = page.locator(".card-body");
+> 12 |    await page.goto("https://rahulshettyacademy.com/client/#/auth/login");
+     |               ^ Error: page.goto: Test timeout of 30000ms exceeded.
+  13 |    await page.locator("#userEmail").fill(email);
+  14 |    await page.locator("#userPassword").fill(password);
+  15 |    await page.locator("[value='Login']").click();
+  16 |    await page.waitForLoadState('networkidle');
+  17 |    await page.locator(".card-body b").first().waitFor();
+  18 |    const titles = await page.locator(".card-body b").allTextContents();
+  19 |    console.log(titles); 
+  20 |    const count = await products.count();
+  21 |    for (let i = 0; i < count; ++i) {
+  22 |       if (await products.nth(i).locator("b").textContent() === productName) {
+  23 |          //add to cart
+  24 |          await products.nth(i).locator("text= Add To Cart").click();
+  25 |          break;
+  26 |       }
+  27 |    }
+  28 | 
+  29 |    await page.locator("[routerlink*='cart']").click();
+  30 |    //await page.pause();
+  31 | 
+  32 |    await page.locator("div li").first().waitFor();
+  33 |    const bool = await page.locator("h3:has-text('iphone 13 pro')").isVisible();
+  34 |    expect(bool).toBeTruthy();
+  35 |    await page.locator("text=Checkout").click();
+  36 | 
+  37 |    await page.locator("[placeholder*='Country']").pressSequentially("ind");
+  38 |    const dropdown = page.locator(".ta-results");
+  39 |    await dropdown.waitFor();
+  40 |    const optionsCount = await dropdown.locator("button").count();
+  41 |    for (let i = 0; i < optionsCount; ++i) {
+  42 |       const text = await dropdown.locator("button").nth(i).textContent();
+  43 |       if (text === " India") {
+  44 |          await dropdown.locator("button").nth(i).click();
+  45 |          break;
+  46 |       }
+  47 |    }
+  48 | 
+  49 |    expect(page.locator(".user__name [type='text']").first()).toHaveText(email);
+  50 |    await page.locator(".action__submit").click();
+  51 |    await expect(page.locator(".hero-primary")).toHaveText(" Thankyou for the order. ");
+  52 |    const orderId = await page.locator(".em-spacer-1 .ng-star-inserted").textContent();
+  53 |    console.log(orderId);
+  54 | 
+  55 |    await page.locator("button[routerlink*='myorders']").click();
+  56 |    await page.locator("tbody").waitFor();
+  57 |    const rows = await page.locator("tbody tr");
+  58 | 
+  59 | 
+  60 |    for (let i = 0; i < await rows.count(); ++i) {
+  61 |       const rowOrderId = await rows.nth(i).locator("th").textContent();
+  62 |       if (orderId.includes(rowOrderId)) {
+  63 |          await rows.nth(i).locator("button").first().click();
+  64 |          break;
+  65 |       }
+  66 |    }
+  67 |    const orderIdDetails = await page.locator(".col-text").textContent();
+  68 |    expect(orderId.includes(orderIdDetails)).toBeTruthy();
+  69 | 
+  70 | });
+  71 | 
+  72 | 
+  73 | 
+  74 | 
+  75 | 
+  76 | 
+  77 | 
+  78 | 
+  79 | 
+```
