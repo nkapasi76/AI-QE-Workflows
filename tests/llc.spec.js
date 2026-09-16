@@ -25,11 +25,8 @@ test('Playwright Special locators', async ({ page }) => {
 
 //30seconds
 test('Playwright Test level time out ', async ({ page }) => {
-    test.setTimeout(30_000); //test level time out
-    const slowExpect = expect.configure({timeout : 9000}); //assertion level time out
-    page.setDefaultTimeout(9000); //action level time out
-    page.setDefaultNavigationTimeout(9000); //navigation level time out
-    
+  
+    const slowExpect = expect.configure({timeout : 9000});
     await page.goto("https://rahulshettyacademy.com/angularpractice/");
     await page.getByLabel("Check me out if you Love IceCreams!").click();
     await page.getByLabel("Employed").check();
@@ -41,6 +38,7 @@ test('Playwright Test level time out ', async ({ page }) => {
 
     //5 seconds default timeout for expect assertions --{timeout:10000}- Step level --test level
     await slowExpect(page.getByText("Success! The Form has been submitted successfully!.")).toBeVisible();
+
 
     await page.getByRole("link",{name : "Shop"}).click();
     await slowExpect(page.locator(".my-4").first()).toHaveText("Shop Name");

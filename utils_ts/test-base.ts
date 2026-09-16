@@ -1,19 +1,23 @@
-const test = require("node:test");
-import {test as baseTest} from "@playwright/test";
-interface testdatafororder {
+
+import {test as baseTest} from '@playwright/test';
+interface TestDataForOrder {
     username: string;
     password: string;
     productName: string;
-}
-export const customTest = baseTest.extend<{testdatafororder:testdatafororder}>(
-    {
-  testdatafororder : {
-    "username": "nkapasi@yahoo.com",
-    "password": "Xaviers1",
-    "productName": "ZARA COAT 3"
+};
+export const customtest1 = baseTest.extend<{testDataForOrder:TestDataForOrder}>(
+{
+testDataForOrder :    {
+    username : "anshikaw@gmail.com",
+    password : "Learning@830$3mK3",
+    productName:"ADIDAS ORIGINAL"
+    
+    }
 
-    }
-    }
+}
+
 )
 
-  
+
+
+

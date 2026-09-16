@@ -1,13 +1,17 @@
  const {test, expect} = require('@playwright/test');
- const {customtest1} = require('../utils/test-base copy.js');
+ const {customtest1} = require('../utils/test-base');
+
  const {POManager} = require('../pageobjects/POManager');
  //Json->string->js object
  const dataset =  JSON.parse(JSON.stringify(require("../utils/placeorderTestData.json")));
+
+ 
 for(const data of dataset)
 {
- test(`Client App login for ${data.productName}`, async ({page})=>
+ test(`@Webs Client App login for ${data.productName}`, async ({page})=>
  {
    const poManager = new POManager(page);
+    //js file- Login js, DashboardPage
      const products = page.locator(".card-body");
      const loginPage = poManager.getLoginPage();
      await loginPage.goTo();
@@ -28,6 +32,7 @@ for(const data of dataset)
    const ordersHistoryPage = poManager.getOrdersHistoryPage();
    await ordersHistoryPage.searchOrderAndSelect(orderId);
    expect(orderId.includes(await ordersHistoryPage.getOrderId())).toBeTruthy();
+
  });
 }
 
@@ -47,3 +52,10 @@ for(const data of dataset)
     await cartPage.VerifyProductIsDisplayed(testDataForOrder.productName);
     await cartPage.Checkout();
 })
+
+ 
+
+
+
+ 
+

@@ -1,13 +1,19 @@
-const test = require("node:test");
+const base = require('@playwright/test');
 
-const base = require ("@playwright/test");
 
-exports.test = base.test.extend({
-    testdatafororder : {
-    "username": "nkapasi@yahoo.com",
-    "password": "Xaviers1",
-    "productName": "ZARA COAT 3"
-
+exports.customtest1 = base.test.extend(
+{
+testDataForOrder :    {
+    username : "anshikaw@gmail.com",
+    password : "Learning@830$3mK3",
+    productName:"ADIDAS ORIGINAL"
+    
     }
 
-})
+}
+
+)
+
+
+
+

@@ -3,15 +3,14 @@ const { test, expect } = require('@playwright/test');
 
 
 
-test('@web Client App login', async ({ page }) => {
+test('@Webst Client App login', async ({ page }) => {
    //js file- Login js, DashboardPage
-   const email = 'nkapasi@test.com';
-  const password = '!Test1234';
-  const productName = 'iphone 13 pro';
+   const email = "nkapasi@test.com";
+   const productName = 'ZARA COAT 3';
    const products = page.locator(".card-body");
-   await page.goto("https://rahulshettyacademy.com/client/#/auth/login");
+   await page.goto("https://rahulshettyacademy.com/client");
    await page.locator("#userEmail").fill(email);
-   await page.locator("#userPassword").fill(password);
+   await page.locator("#userPassword").fill("!Test1234");
    await page.locator("[value='Login']").click();
    await page.waitForLoadState('networkidle');
    await page.locator(".card-body b").first().waitFor();
@@ -30,7 +29,7 @@ test('@web Client App login', async ({ page }) => {
    //await page.pause();
 
    await page.locator("div li").first().waitFor();
-   const bool = await page.locator("h3:has-text('iphone 13 pro')").isVisible();
+   const bool = await page.locator("h3:has-text('ZARA COAT 3')").isVisible();
    expect(bool).toBeTruthy();
    await page.locator("text=Checkout").click();
 

@@ -1,12 +1,12 @@
  import {Page, test, expect} from '@playwright/test';
- import {customTest} from '../utils_ts/test-base.ts';
+ import {customtest1} from '../utils_ts/test-base.ts';
  import {POManager} from'../pageobjects_ts/POManager.ts';
  
  //Json->string->js object
  const dataset =  JSON.parse(JSON.stringify(require("../utils/placeorderTestData.json")));
 for(const data of dataset)
 {
- customTest(`Client App login for ${data.productName}`, async ({page:Page})=>
+ customtest1(`Client App login for ${data.productName}`, async ({page:Page})=>
  {
   
 
@@ -34,7 +34,7 @@ for(const data of dataset)
  });
 }
 
- customTest(`Client App login`, async ({page:Page,testdatafororder})=>
+ customtest1(`Client App login`, async ({page:Page,testDataForOrder})=>
 
  {
    const poManager = new POManager(Page);
@@ -42,12 +42,12 @@ for(const data of dataset)
      const products = Page.locator(".card-body");
      const loginPage = poManager.getLoginPage();
      await loginPage.goTo();
-    await loginPage.validLogin(testdatafororder.username,testdatafororder.password);
+    await loginPage.validLogin(testDataForOrder.username,testDataForOrder.password);
      const dashboardPage = poManager.getDashboardPage();
-    await dashboardPage.searchProductAddCart(testdatafororder.productName);
+    await dashboardPage.searchProductAddCart(testDataForOrder.productName);
      await dashboardPage.navigateToCart();
 
     const cartPage = poManager.getCartPage();
-    await cartPage.VerifyProductIsDisplayed(testdatafororder.productName);
+    await cartPage.VerifyProductIsDisplayed(testDataForOrder.productName);
     await cartPage.Checkout();
 })

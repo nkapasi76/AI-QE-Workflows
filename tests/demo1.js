@@ -1,17 +1,15 @@
-
-
-"use strict";
-let numb = 3;
-console.log(numb);
-let something = "hello world";
-let somethingElse = "hello hello world";
-let active = true;
-let employees = ['jack', 'jill', 'john'];
-console.log(employees);
-function addtype(num1, num2) {
-    return (num1 + num2);
+var message1 = "Hello";
+message1 = "bye";
+console.log(message1);
+var age1 = 20;
+console.log(age1);
+var isActive = false;
+var numberArry = [1, 2, 3];
+var data = "this could be anything";
+data = 42;
+function add(a, b) {
+    return a + b;
 }
-console.log(addtype(5, 9));
-let user = { name: "bob", age: 25 };
-console.log(user);
-
+add(3, 4);
+var user = { name: "Bob", age: 34 };
+user.location = "hyderabad";

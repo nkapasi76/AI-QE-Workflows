@@ -1,35 +1,36 @@
-import { Page,Locator} from "@playwright/test";    
+import { expect, type Locator, type Page } from '@playwright/test';
+let message1 : string = "Hello";
+message1 = "bye";
+console.log(message1);
+let age1:number = 20;
+console.log(age1);
+let isActive : boolean = false;
 
+let numberArry : number[] = [1,2,3];
 
-let numb: number= 3;
-console.log(numb);
-let something: string = "hello world";
-let somethingElse: any = "hello hello world";
-let active: boolean = true;
-let employees: string[] = ['jack', 'jill', 'john'];
-console.log(employees);
-
-function addtype(num1:number,num2:number): number
+let data : any = "this could be anything";
+data =42;
+function add(a:number,b:number): number
 {
-return (num1 + num2)
+    return a+b;
 }
-console.log(addtype(5,9));
 
-let user: {name:string,age:number}
-    =  {name:"bob", age:25}
-    console.log(user);
+add(3,4);
 
-class CartPage
-{
-page:Page
-cartItemNames:Locator
-checkoutButton:Locator
+let user: {name:string,age:number,location:string} = { name: "Bob",age:34,location:"delhi"};
+user.location = "hyderabad";
 
-constructor(page:any)
 
-{
-    this.page = page;
-    this.cartItemNames = page.locator(".cartSection h3");
-    this.checkoutButton = page.getByRole("button", { name: "Checkout" });
-}
-}
+
+
+
+
+
+
+
+
+
+
+
+
+

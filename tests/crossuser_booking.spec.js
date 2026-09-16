@@ -3,12 +3,12 @@ import { test, expect } from '@playwright/test';
 const BASE_URL = 'https://eventhub.rahulshettyacademy.com';
 const API_URL  = 'https://api.eventhub.rahulshettyacademy.com/api';
 
-const YAHOO_USER = { email: 'Use your own credentials - 1', password: '' };
-const GMAIL_USER = { email: 'Use your own credentials - 2', password: '' };
+const YAHOO_USER = { email: 'nishkapasi@yahoo.com', password: '!test123' };
+const GMAIL_USER = { email: 'nkapasi@test.com', password: 'test123' };
 
 async function loginAs(page, user) {
   await page.goto(`${BASE_URL}/login`);
-  await page.getByPlaceholder('you@email.com').fill(user.email);
+  await page.getByPlaceholder('nkapasi@nkapasi@test.com').fill(user.email);
   await page.getByLabel('Password').fill(user.password);
   await page.locator('#login-btn').click();
   await expect(page.getByRole('link', { name: 'Browse Events →' })).toBeVisible();
