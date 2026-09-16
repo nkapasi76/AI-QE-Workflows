@@ -1,6 +1,6 @@
 ---
 description: 'Release Bug Analysis & Test Coverage Gap Identifier - Select the appropriate model'
-name: 'Analyzer - Release Certification Bug'
+name: 'Analyzer - Release Certification Bugs'
 title: 'Release Certification Bug Analyzer'
 ---
 
