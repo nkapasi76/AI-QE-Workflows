@@ -1,4 +1,4 @@
-# QAOps Playwright Automation
+# AI-QE-Workflows
 
 An end-to-end test automation framework built on [Playwright](https://playwright.dev/). Tests are written in **JavaScript and TypeScript**, and the project includes:
 - the **Page Object Model** (POM);
@@ -90,8 +90,8 @@ Playwright_Automation/
 **Prerequisites:** Node.js LTS, npm, and VS Code with GitHub Copilot Chat (for the agents).
 
 ```bash
-git clone https://github.com/nkapasi76/QAOpsPlaywright.git
-cd QAOpsPlaywright
+git clone https://github.com/nkapasi76/AI-QE-Workflows.git
+cd AI-QE-Workflows
 npm ci
 npx playwright install --with-deps
 ```

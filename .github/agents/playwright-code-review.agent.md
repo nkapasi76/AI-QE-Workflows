@@ -37,7 +37,7 @@ The human reviewer makes the final decision.
 
 | Parameter | Default | Description |
 | --------- | ------- | ----------- |
-| PR | none | GitHub PR number or URL, e.g. `12` or `https://github.com/nkapasi76/QAOpsPlaywright/pull/12` |
+| PR | none | GitHub PR number or URL, e.g. `12` or `https://github.com/nkapasi76/AI-QE-Workflows/pull/12` |
 | Target branch | `main` | Local mode: the branch the current branch would merge into |
 | Source branch | current branch | Local mode: the branch being reviewed |
 | Scope | all changed files | Optional path or pattern filter, e.g. `pageobjects/**` |
@@ -315,7 +315,7 @@ Reply with any of:
 
 ```
 Review PR 12
-Review https://github.com/nkapasi76/QAOpsPlaywright/pull/12, reviewers @qa-lead
+Review https://github.com/nkapasi76/AI-QE-Workflows/pull/12, reviewers @qa-lead
 Review my current branch
 Review current branch vs main, scope pageobjects/**
 ```
