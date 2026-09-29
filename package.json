@@ -4,11 +4,11 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test:cucumber": "cucumber-js --require feature/support/hooks.js --require feature/step_definitions/steps.js",
+    "test:cucumber": "cucumber-js feature/ --require feature/support/hooks.js --require feature/step_definitions/steps.js",
     "test": "npx playwright test tests/WebAPIPart2.spec.js --headed",
     "regression": "npx playwright test --headed",
     "webtests": "npx playwright test --grep @web",
-    "firefox": "npx playwright test --config=playwright.config.js --project=firefox",
+    "firefox": "npx playwright test --browser=firefox",
     "allureReports": "npx playwright test --grep @web --reporter=line,allure-playwright"
   },
   "keywords": [],
