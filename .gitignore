@@ -9,3 +9,11 @@ node_modules/
 
 # E2E test creator scratch files
 tmp/
+
+# Generated reports and screenshots (kept locally, not in the repo)
+/allure-report/
+/allure-results/
+/cucumber-report.html
+/cucumber_report.hml
+/screenshot.png
+/partialScreenshot.png
