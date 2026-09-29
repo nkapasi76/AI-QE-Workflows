@@ -1,0 +1,1381 @@
+[
+  {
+    "scenarioId": "E2E-HARBORCART-001",
+    "sectionId": null,
+    "payload": {
+      "title": "Registered shopper buys mugs and a gift item with SAVE10 and receives confirmation",
+      "template_id": 2,
+      "type_id": 3,
+      "priority_id": 4,
+      "refs": "BR-01,BR-02,BR-03,BR-06,BR-07,BR-08,BR-09,BR-10,BR-12,BR-13,BR-14,BR-15,BO-01",
+      "custom_automation": 3,
+      "custom_preconds": "A registered shopper searches, builds a cart, applies SAVE10, pays with an approved sandbox token and receives a confirmed order, email and history entry.\nGIVEN the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\nAND the clock is frozen at \"2026-10-01T12:00:00Z\"\nAND the catalog contains MUG-RED (ACTIVE, $24.00, stock 5) and GIFT-001 (ACTIVE, $15.00, stock 20)\nAND promotion SAVE10 is active\nAND registered shopper \"S1\" with a unique email is signed in with an empty cart",
+      "custom_steps_separated": [
+        {
+          "content": "WHEN S1 searches the catalog for \"mug-red\"",
+          "expected": "THEN MUG-RED appears in the search results"
+        },
+        {
+          "content": "WHEN S1 opens the MUG-RED product details",
+          "expected": "THEN the page shows SKU \"MUG-RED\", its name, description, price $24.00 and a stock status"
+        },
+        {
+          "content": "WHEN S1 adds MUG-RED with quantity 2 to the cart\nAND S1 searches for \"GIFT-001\" and adds GIFT-001 with quantity 1 to the cart",
+          "expected": "THEN the cart shows MUG-RED × 2 and GIFT-001 × 1"
+        },
+        {
+          "content": "WHEN S1 proceeds to checkout, enters the address \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with S1's email, and applies promotion code \"SAVE10\"",
+          "expected": "THEN the quote shows merchandise $63.00, discount $4.80, shipping $0.00, tax $3.64 and total $61.84\nAND the quote expiresAt is \"2026-10-01T12:10:00Z\""
+        },
+        {
+          "content": "WHEN S1 confirms the quote and pays through the sandbox card widget, which yields token \"tok_approve\"",
+          "expected": "THEN S1 sees an order confirmation with an order number and total $61.84\nAND the test API shows exactly one CONFIRMED order for S1 with a payment reference\nAND the test API shows exactly one payment attempt, AUTHORIZED for 6184 cents\nAND the reservation is ALLOCATED and available stock is MUG-RED 3 and GIFT-001 19\nAND S1's cart no longer contains MUG-RED or GIFT-001\nAND event capture shows exactly one OrderConfirmed event for the order\nAND eventually, within the configured async deadline, the sandbox email provider holds exactly one confirmation email to S1's email"
+        },
+        {
+          "content": "WHEN S1 opens order history",
+          "expected": "THEN the new order is listed first with total $61.84 and status CONFIRMED"
+        }
+      ]
+    }
+  },
+  {
+    "scenarioId": "E2E-HARBORCART-002",
+    "sectionId": null,
+    "payload": {
+      "title": "Guest buys the last blue bag and later retrieves the order with a verification code",
+      "template_id": 2,
+      "type_id": 3,
+      "priority_id": 4,
+      "refs": "BR-04,BR-07,BR-08,BR-12,BR-15,NFR-05",
+      "custom_automation": 3,
+      "custom_preconds": "A guest checks out from a session cart, then retrieves the order with order number, email and a one-time verification code.\nGIVEN the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\nAND the catalog contains BAG-BLUE (ACTIVE, $49.99, stock 1)\nAND guest shopper \"G1\" has a new browser session and a unique email",
+      "custom_steps_separated": [
+        {
+          "content": "WHEN G1 adds BAG-BLUE with quantity 1 to the session cart without signing in",
+          "expected": "THEN the session cart shows BAG-BLUE × 1"
+        },
+        {
+          "content": "WHEN G1 checks out with the address \"Pat Shopper, 100 Harbor St, Boston, MA 02110\", G1's email and no promotion code",
+          "expected": "THEN the quote shows merchandise $49.99, discount $0.00, shipping $8.00, tax $3.62 and total $61.61"
+        },
+        {
+          "content": "WHEN G1 pays with sandbox token \"tok_approve\"",
+          "expected": "THEN G1 sees an order confirmation with an order number and total $61.61\nAND the test API shows one CONFIRMED guest order and BAG-BLUE available stock 0"
+        },
+        {
+          "content": "WHEN G1, in a new browser session, requests an order lookup with the order number and G1's email",
+          "expected": "THEN eventually, within the configured async deadline, a one-time verification code is delivered to G1's email in the sandbox email provider"
+        },
+        {
+          "content": "WHEN G1 submits the order number, G1's email and the verification code",
+          "expected": "THEN G1 sees the order with BAG-BLUE × 1 and total $61.61"
+        },
+        {
+          "content": "WHEN G1 submits the same verification code a second time",
+          "expected": "THEN the order details are not shown"
+        },
+        {
+          "content": "WHEN a lookup is attempted with the order number, a different email and G1's verification code",
+          "expected": "THEN the order details are not shown"
+        },
+        {
+          "content": "WHEN an unauthenticated client requests GET /api/v1/orders",
+          "expected": "THEN no order list is returned\nAND event capture for this journey contains no verification code values"
+        }
+      ]
+    }
+  },
+  {
+    "scenarioId": "E2E-HARBORCART-003",
+    "sectionId": null,
+    "payload": {
+      "title": "Shopper cannot view or cancel another shopper's order",
+      "template_id": 2,
+      "type_id": 3,
+      "priority_id": 4,
+      "refs": "BR-17,NFR-03",
+      "custom_automation": 3,
+      "custom_preconds": "A second shopper tries to read and cancel the first shopper's order through the API and web app, gets 404, and the order is untouched.\nGIVEN the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\nAND the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\nAND registered shopper \"S1\" has a CONFIRMED order O1 for MUG-RED × 1 paid with \"tok_approve\"\nAND registered shopper \"S2\" is signed in",
+      "custom_steps_separated": [
+        {
+          "content": "WHEN S2 requests GET /api/v1/orders/{O1 id}",
+          "expected": "THEN the response is 404"
+        },
+        {
+          "content": "WHEN S2 opens O1's order detail URL in the web app",
+          "expected": "THEN S2 sees a not-found result and none of O1's details"
+        },
+        {
+          "content": "WHEN S2 requests POST /api/v1/orders/{O1 id}/cancel",
+          "expected": "THEN the response is 404\nAND the test API shows O1 still CONFIRMED, its payment attempt still AUTHORIZED and MUG-RED available stock 4"
+        },
+        {
+          "content": "WHEN S2 opens order history",
+          "expected": "THEN O1 is not listed"
+        }
+      ]
+    }
+  },
+  {
+    "scenarioId": "E2E-HARBORCART-004",
+    "sectionId": null,
+    "payload": {
+      "title": "Order history lists only the shopper's own orders, newest first",
+      "template_id": 2,
+      "type_id": 3,
+      "priority_id": 3,
+      "refs": "BR-15,BR-17",
+      "custom_automation": 3,
+      "custom_preconds": "Two shoppers place orders; each shopper's history shows only their own orders, newest first.\nGIVEN the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\nAND the clock is frozen at \"2026-10-01T12:00:00Z\"\nAND the catalog contains MUG-RED (ACTIVE, $24.00, stock 5) and GIFT-001 (ACTIVE, $15.00, stock 20)\nAND registered shoppers \"S1\" and \"S2\" each have a unique email",
+      "custom_steps_separated": [
+        {
+          "content": "WHEN S1 places order A for MUG-RED × 1 with \"tok_approve\"\nAND the clock advances 1 minute and S1 places order B for GIFT-001 × 1 with \"tok_approve\"\nAND S2 places order C for GIFT-001 × 1 with \"tok_approve\"",
+          "expected": "THEN the test API shows orders A, B and C as CONFIRMED"
+        },
+        {
+          "content": "WHEN S1 opens order history",
+          "expected": "THEN S1 sees exactly orders B and A, in that order"
+        },
+        {
+          "content": "WHEN S2 opens order history",
+          "expected": "THEN S2 sees exactly order C"
+        }
+      ]
+    }
+  },
+  {
+    "scenarioId": "E2E-HARBORCART-005",
+    "sectionId": null,
+    "payload": {
+      "title": "Support agent views a shopper's order through the audited support role",
+      "template_id": 2,
+      "type_id": 3,
+      "priority_id": 3,
+      "refs": "BR-17,NFR-03",
+      "custom_automation": 3,
+      "custom_preconds": "A support agent with the support role can see a shopper's order and the access is audited; a shopper without the role cannot.\nGIVEN the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\nAND registered shopper \"S1\" has a CONFIRMED order O1 for MUG-RED × 1 paid with \"tok_approve\"\nAND support agent \"A1\" is signed in to the support console with <TBD: support role name and account provisioning>\nAND registered shopper \"S2\" without the support role is signed in",
+      "custom_steps_separated": [
+        {
+          "content": "WHEN A1 looks up O1 in the support console",
+          "expected": "THEN A1 sees O1's details\nAND an audit record of A1's access to O1 is available through <TBD: documented way to read support audit records>"
+        },
+        {
+          "content": "WHEN S2 requests GET /api/v1/orders/{O1 id}",
+          "expected": "THEN the response is 404"
+        }
+      ]
+    }
+  },
+  {
+    "scenarioId": "E2E-HARBORCART-006",
+    "sectionId": null,
+    "payload": {
+      "title": "Guest cart merges into the account cart at sign-in, capped at 10 per SKU",
+      "template_id": 2,
+      "type_id": 3,
+      "priority_id": 3,
+      "refs": "BR-04",
+      "custom_automation": 3,
+      "custom_preconds": "A shopper builds a guest cart, signs in, and the guest lines merge into the account cart with the per-SKU cap applied and distinct SKUs kept.\nGIVEN the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\nAND the catalog contains MUG-RED (ACTIVE, $24.00, stock 5) and GIFT-001 (ACTIVE, $15.00, stock 20)\nAND registered shopper \"S1\" has an account cart containing MUG-RED × 7\nAND S1 is signed out with an empty guest session cart",
+      "custom_steps_separated": [
+        {
+          "content": "WHEN S1, as a guest, adds MUG-RED × 4 and GIFT-001 × 1 to the session cart",
+          "expected": "THEN the session cart shows MUG-RED × 4 and GIFT-001 × 1"
+        },
+        {
+          "content": "WHEN S1 signs in",
+          "expected": "THEN S1's account cart shows MUG-RED × 10 and GIFT-001 × 1"
+        }
+      ]
+    }
+  },
+  {
+    "scenarioId": "E2E-HARBORCART-007",
+    "sectionId": null,
+    "payload": {
+      "title": "Cart merge is rejected when the combined cart would exceed 20 SKUs",
+      "template_id": 2,
+      "type_id": 3,
+      "priority_id": 2,
+      "refs": "BR-03,BR-04",
+      "custom_automation": 3,
+      "custom_preconds": "A guest cart and an account cart that together hold 21 distinct SKUs are not merged, and both carts are preserved.\nGIVEN the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\nAND the catalog contains 21 distinct ACTIVE SKUs X1–X21 <TBD: 21 SKU fixtures; the BRD defines only 3 ACTIVE SKUs>\nAND registered shopper \"S1\" has an account cart containing X1–X12, each × 1\nAND S1 is signed out with a guest session cart containing X13–X21, each × 1",
+      "custom_steps_separated": [
+        {
+          "content": "WHEN S1 signs in",
+          "expected": "THEN the cart merge is rejected with 409\nAND S1's account cart still contains exactly X1–X12, each × 1\nAND the guest session cart still contains exactly X13–X21, each × 1"
+        }
+      ]
+    }
+  },
+  {
+    "scenarioId": "E2E-HARBORCART-008",
+    "sectionId": null,
+    "payload": {
+      "title": "Declined payment releases reserved stock and creates no order",
+      "template_id": 2,
+      "type_id": 3,
+      "priority_id": 4,
+      "refs": "BR-11,BR-13,BO-02",
+      "custom_automation": 3,
+      "custom_preconds": "A shopper pays with a declined sandbox token; no order is created and the reserved stock is released.\nGIVEN the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\nAND the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\nAND registered shopper \"S1\" is signed in with a cart containing MUG-RED × 2\nAND S1 has a valid quote q1 for address \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with no promotion and total $59.50",
+      "custom_steps_separated": [
+        {
+          "content": "WHEN S1 submits checkout for q1 with token \"tok_decline\" and a new Idempotency-Key",
+          "expected": "THEN the response is 422 with code \"PAYMENT_DECLINED\"\nAND S1 sees that the payment was declined and no order confirmation is shown\nAND the test API shows exactly one payment attempt, DECLINED, and no order for S1\nAND the reservation is RELEASED and MUG-RED available stock is 5\nAND event capture shows no OrderConfirmed event"
+        }
+      ]
+    }
+  },
+  {
+    "scenarioId": "E2E-HARBORCART-009",
+    "sectionId": null,
+    "payload": {
+      "title": "Payment timeout stays pending until reconciliation, without a second charge",
+      "template_id": 2,
+      "type_id": 3,
+      "priority_id": 4,
+      "refs": "BR-11,BR-12,BR-13,NFR-02,BO-03",
+      "custom_automation": 3,
+      "custom_preconds": "A payment times out, stays pending with stock held, a retry with the same key causes no second charge, and reconciliation settles it to CONFIRMED or FAILED with consistent stock.\nGIVEN the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\nAND the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\nAND registered shopper \"S1\" is signed in with a cart containing MUG-RED × 2\nAND S1 has a valid quote q1 for address \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with no promotion and total $59.50",
+      "custom_steps_separated": [
+        {
+          "content": "WHEN S1 submits checkout for q1 with token \"tok_timeout\" and Idempotency-Key K1",
+          "expected": "THEN the response is 202\nAND S1 sees a pending payment state and no order confirmation\nAND GET /api/v1/checkout/requests/K1 returns state UNKNOWN\nAND the test API shows the payment attempt UNKNOWN and the reservation HELD"
+        },
+        {
+          "content": "WHEN S1 retries the same request with Idempotency-Key K1",
+          "expected": "THEN the response is the original 202 response\nAND the test API shows exactly one payment attempt for K1"
+        },
+        {
+          "content": "WHEN the reconciliation trigger runs",
+          "expected": "THEN eventually, within the configured async deadline, GET /api/v1/checkout/requests/K1 returns CONFIRMED or FAILED\nAND if CONFIRMED, exactly one CONFIRMED order exists, the reservation is ALLOCATED, MUG-RED available stock is 3 and exactly one OrderConfirmed event is captured\nAND if FAILED, no order exists, the reservation is RELEASED and MUG-RED available stock is 5\nAND the test API still shows exactly one payment attempt for K1"
+        }
+      ]
+    }
+  },
+  {
+    "scenarioId": "E2E-HARBORCART-010",
+    "sectionId": null,
+    "payload": {
+      "title": "Double submit and browser refresh create one order and one charge",
+      "template_id": 2,
+      "type_id": 3,
+      "priority_id": 4,
+      "refs": "BR-12,BO-03",
+      "custom_automation": 3,
+      "custom_preconds": "The same checkout is sent twice at once and again after a refresh; exactly one order and one payment exist and every success returns the same order number.\nGIVEN the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\nAND the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\nAND registered shopper \"S1\" is signed in with a cart containing MUG-RED × 2\nAND S1 has a valid quote q1 for address \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with no promotion and total $59.50",
+      "custom_steps_separated": [
+        {
+          "content": "WHEN S1 double-clicks Place order, so requests R1 and R2 with the same Idempotency-Key K1, quote q1 and token \"tok_approve\" are sent concurrently",
+          "expected": "THEN at most one of R1 and R2 returns 201, and every successful response carries the same order number\nAND the test API shows exactly one CONFIRMED order and exactly one payment attempt, AUTHORIZED for 5950 cents\nAND MUG-RED available stock is 3"
+        },
+        {
+          "content": "WHEN S1 refreshes the browser after payment and the client re-sends the checkout request with Idempotency-Key K1",
+          "expected": "THEN the response is 200 with the same order number as the original response\nAND S1 has exactly one order in order history and event capture shows exactly one OrderConfirmed event"
+        }
+      ]
+    }
+  },
+  {
+    "scenarioId": "E2E-HARBORCART-011",
+    "sectionId": null,
+    "payload": {
+      "title": "Reusing an idempotency key with a different order is rejected",
+      "template_id": 2,
+      "type_id": 3,
+      "priority_id": 4,
+      "refs": "BR-12",
+      "custom_automation": 3,
+      "custom_preconds": "A shopper reuses an idempotency key for a different quote and gets IDEMPOTENCY_CONFLICT; a new key succeeds.\nGIVEN the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\nAND the catalog contains MUG-RED (ACTIVE, $24.00, stock 5) and GIFT-001 (ACTIVE, $15.00, stock 20)\nAND registered shopper \"S1\" is signed in and has placed order O1 for MUG-RED × 2 with Idempotency-Key K1 and \"tok_approve\"\nAND S1 has since added GIFT-001 × 1 to the cart and created quote q2 for address \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with total $24.44",
+      "custom_steps_separated": [
+        {
+          "content": "WHEN S1 submits checkout for q2 with \"tok_approve\" and the same Idempotency-Key K1",
+          "expected": "THEN the response is 409 with code \"IDEMPOTENCY_CONFLICT\"\nAND the test API shows S1 still has only order O1 and one payment attempt\nAND GIFT-001 available stock is 20"
+        },
+        {
+          "content": "WHEN S1 submits checkout for q2 with \"tok_approve\" and a new Idempotency-Key K2",
+          "expected": "THEN the response is 201 with an order number different from O1"
+        }
+      ]
+    }
+  },
+  {
+    "scenarioId": "E2E-HARBORCART-012",
+    "sectionId": null,
+    "payload": {
+      "title": "Two shoppers race for the last blue bag and exactly one wins",
+      "template_id": 2,
+      "type_id": 3,
+      "priority_id": 4,
+      "refs": "BR-13,BO-02,NFR-05",
+      "custom_automation": 3,
+      "custom_preconds": "Two shoppers check out the last BAG-BLUE unit at the same moment; one order is confirmed, the other gets OUT_OF_STOCK without any payment attempt.\nGIVEN the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\nAND the catalog contains BAG-BLUE (ACTIVE, $49.99, stock 1)\nAND registered shoppers \"S1\" and \"S2\" are signed in, each with a cart containing BAG-BLUE × 1 and a valid quote for address \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with total $61.61",
+      "custom_steps_separated": [
+        {
+          "content": "WHEN S1 and S2 submit checkout at the same moment, each with \"tok_approve\" and their own Idempotency-Key",
+          "expected": "THEN exactly one response is 201 with an order number\nAND the other response is 409 with code \"OUT_OF_STOCK\", details.sku \"BAG-BLUE\" and a correlationId\nAND the test API shows no payment attempt for the losing shopper\nAND BAG-BLUE available stock is 0, never negative, with exactly one ALLOCATED reservation\nAND event capture shows exactly one OrderConfirmed event"
+        },
+        {
+          "content": "WHEN the losing shopper opens order history",
+          "expected": "THEN no order is listed"
+        }
+      ]
+    }
+  },
+  {
+    "scenarioId": "E2E-HARBORCART-013",
+    "sectionId": null,
+    "payload": {
+      "title": "Ordering more than the available stock fails before any payment",
+      "template_id": 2,
+      "type_id": 3,
+      "priority_id": 4,
+      "refs": "BR-13",
+      "custom_automation": 3,
+      "custom_preconds": "A shopper orders six mugs when five are in stock and gets OUT_OF_STOCK before any payment call.\nGIVEN the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\nAND the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\nAND registered shopper \"S1\" is signed in with a cart containing MUG-RED × 6\nAND S1 has a valid quote q1 for address \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with no promotion and total $153.00",
+      "custom_steps_separated": [
+        {
+          "content": "WHEN S1 submits checkout for q1 with \"tok_approve\" and a new Idempotency-Key",
+          "expected": "THEN the response is 409 with code \"OUT_OF_STOCK\" and details.sku \"MUG-RED\"\nAND S1 sees that MUG-RED is out of stock and no order confirmation is shown\nAND the test API shows no payment attempt and no order for S1\nAND MUG-RED available stock is 5"
+        }
+      ]
+    }
+  },
+  {
+    "scenarioId": "E2E-HARBORCART-014-a",
+    "sectionId": null,
+    "payload": {
+      "title": "Quote is honored until expiry and refused after it without charging (checkout at 2026-10-01T12:09:59Z)",
+      "template_id": 2,
+      "type_id": 3,
+      "priority_id": 4,
+      "refs": "BR-09",
+      "custom_automation": 3,
+      "custom_preconds": "A quote is used just before and just after its 10-minute expiry; only the in-window checkout creates an order and a charge.\nGIVEN the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\nAND the clock is frozen at \"2026-10-01T12:00:00Z\"\nAND the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\nAND registered shopper \"S1\" is signed in with a cart containing MUG-RED × 2",
+      "custom_steps_separated": [
+        {
+          "content": "WHEN S1 creates quote q1 for address \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with no promotion",
+          "expected": "THEN q1 shows total $59.50 and expiresAt \"2026-10-01T12:10:00Z\""
+        },
+        {
+          "content": "WHEN the clock advances to \"2026-10-01T12:09:59Z\" and S1 submits checkout for q1 with \"tok_approve\"",
+          "expected": "THEN the response is 201 with a CONFIRMED order\nAND the test API shows 1 order(s) and 1 payment attempt(s) for S1\nAND MUG-RED available stock is 3"
+        }
+      ]
+    }
+  },
+  {
+    "scenarioId": "E2E-HARBORCART-014-b",
+    "sectionId": null,
+    "payload": {
+      "title": "Quote is honored until expiry and refused after it without charging (checkout at 2026-10-01T12:10:01Z)",
+      "template_id": 2,
+      "type_id": 3,
+      "priority_id": 4,
+      "refs": "BR-09",
+      "custom_automation": 3,
+      "custom_preconds": "A quote is used just before and just after its 10-minute expiry; only the in-window checkout creates an order and a charge.\nGIVEN the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\nAND the clock is frozen at \"2026-10-01T12:00:00Z\"\nAND the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\nAND registered shopper \"S1\" is signed in with a cart containing MUG-RED × 2",
+      "custom_steps_separated": [
+        {
+          "content": "WHEN S1 creates quote q1 for address \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with no promotion",
+          "expected": "THEN q1 shows total $59.50 and expiresAt \"2026-10-01T12:10:00Z\""
+        },
+        {
+          "content": "WHEN the clock advances to \"2026-10-01T12:10:01Z\" and S1 submits checkout for q1 with \"tok_approve\"",
+          "expected": "THEN the response is 409 with code \"QUOTE_EXPIRED\"\nAND the test API shows 0 order(s) and 0 payment attempt(s) for S1\nAND MUG-RED available stock is 5"
+        }
+      ]
+    }
+  },
+  {
+    "scenarioId": "E2E-HARBORCART-015",
+    "sectionId": null,
+    "payload": {
+      "title": "Changing the cart after quoting invalidates the quote",
+      "template_id": 2,
+      "type_id": 3,
+      "priority_id": 4,
+      "refs": "BR-09,BR-07,BR-08",
+      "custom_automation": 3,
+      "custom_preconds": "A shopper changes the cart after quoting; checkout with the old quote is refused with QUOTE_CHANGED and a fresh quote succeeds.\nGIVEN the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\nAND the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\nAND registered shopper \"S1\" is signed in with a cart containing MUG-RED × 2\nAND S1 has a valid quote q1 for address \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with no promotion and total $59.50",
+      "custom_steps_separated": [
+        {
+          "content": "WHEN S1 changes the MUG-RED quantity in the cart to 3\nAND S1 submits checkout for q1 with \"tok_approve\" and a new Idempotency-Key",
+          "expected": "THEN the response is 409 with code \"QUOTE_CHANGED\"\nAND the test API shows no payment attempt and no order for S1, and MUG-RED available stock is 5"
+        },
+        {
+          "content": "WHEN S1 requests a new quote q2 with the same address and no promotion",
+          "expected": "THEN q2 shows merchandise $72.00, discount $0.00, shipping $0.00, tax $4.50 and total $76.50"
+        },
+        {
+          "content": "WHEN S1 submits checkout for q2 with \"tok_approve\" and a new Idempotency-Key",
+          "expected": "THEN the response is 201 and S1 sees an order confirmation with total $76.50"
+        }
+      ]
+    }
+  },
+  {
+    "scenarioId": "E2E-HARBORCART-016",
+    "sectionId": null,
+    "payload": {
+      "title": "Email outage does not reverse a confirmed order",
+      "template_id": 2,
+      "type_id": 3,
+      "priority_id": 3,
+      "refs": "BR-14,NFR-02",
+      "custom_automation": 3,
+      "custom_preconds": "The email provider is down at confirmation; the order stays confirmed and visible, and exactly one email is sent once the provider recovers.\nGIVEN the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\nAND the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\nAND registered shopper \"S1\" is signed in with a cart containing MUG-RED × 2 and a valid quote for address \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with total $59.50\nAND the sandbox email provider is unavailable via <TBD: test hook to put the sandbox email provider into a failure mode>",
+      "custom_steps_separated": [
+        {
+          "content": "WHEN S1 submits checkout with \"tok_approve\"",
+          "expected": "THEN S1 sees an order confirmation with an order number and total $59.50\nAND the test API shows the order CONFIRMED and its confirmation notification in a retryable state\nAND no confirmation email has been delivered"
+        },
+        {
+          "content": "WHEN the sandbox email provider becomes available again",
+          "expected": "THEN eventually, within the configured async deadline, exactly one confirmation email is delivered to S1\nAND the order is still CONFIRMED"
+        }
+      ]
+    }
+  },
+  {
+    "scenarioId": "E2E-HARBORCART-017",
+    "sectionId": null,
+    "payload": {
+      "title": "Cancelling a confirmed order voids payment and releases stock exactly once",
+      "template_id": 2,
+      "type_id": 3,
+      "priority_id": 4,
+      "refs": "BR-16,BR-13,BR-14",
+      "custom_automation": 3,
+      "custom_preconds": "A shopper cancels a confirmed order (twice); the payment is voided or refunded, stock is released once, and the shopper is notified.\nGIVEN the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\nAND the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\nAND registered shopper \"S1\" is signed in with a CONFIRMED order O1 for MUG-RED × 2 paid with \"tok_approve\"\nAND fulfillment of O1 has not started and MUG-RED available stock is 3",
+      "custom_steps_separated": [
+        {
+          "content": "WHEN S1 cancels O1 from order history",
+          "expected": "THEN the cancel response is 200 with status CANCELLED, or 202 with status CANCEL_PENDING\nAND eventually, within the configured async deadline, O1 status is CANCELLED\nAND O1's payment attempt is VOIDED or REFUNDED\nAND MUG-RED available stock is 5\nAND eventually, within the configured async deadline, S1 receives a cancellation notification in the sandbox email provider"
+        },
+        {
+          "content": "WHEN S1 submits the cancellation for O1 a second time",
+          "expected": "THEN O1 remains CANCELLED\nAND MUG-RED available stock is still 5"
+        },
+        {
+          "content": "WHEN S1 opens order history",
+          "expected": "THEN O1 is shown with status CANCELLED"
+        }
+      ]
+    }
+  },
+  {
+    "scenarioId": "E2E-HARBORCART-018-a",
+    "sectionId": null,
+    "payload": {
+      "title": "Cancellation is refused once fulfillment has started (status: FULFILLING)",
+      "template_id": 2,
+      "type_id": 3,
+      "priority_id": 3,
+      "refs": "BR-16",
+      "custom_automation": 3,
+      "custom_preconds": "A shopper tries to cancel an order that is already fulfilling or shipped and gets CANCELLATION_CLOSED with nothing changed.\nGIVEN the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\nAND the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\nAND registered shopper \"S1\" is signed in with a CONFIRMED order O1 for MUG-RED × 2 paid with \"tok_approve\"\nGIVEN O1 has been moved to FULFILLING via <TBD: test hook to advance fulfillment status>",
+      "custom_steps_separated": [
+        {
+          "content": "WHEN S1 attempts to cancel O1",
+          "expected": "THEN the response is 409 with code \"CANCELLATION_CLOSED\"\nAND O1 is still FULFILLING and its payment attempt is still AUTHORIZED\nAND MUG-RED available stock is 3"
+        }
+      ]
+    }
+  },
+  {
+    "scenarioId": "E2E-HARBORCART-018-b",
+    "sectionId": null,
+    "payload": {
+      "title": "Cancellation is refused once fulfillment has started (status: SHIPPED)",
+      "template_id": 2,
+      "type_id": 3,
+      "priority_id": 3,
+      "refs": "BR-16",
+      "custom_automation": 3,
+      "custom_preconds": "A shopper tries to cancel an order that is already fulfilling or shipped and gets CANCELLATION_CLOSED with nothing changed.\nGIVEN the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\nAND the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\nAND registered shopper \"S1\" is signed in with a CONFIRMED order O1 for MUG-RED × 2 paid with \"tok_approve\"\nGIVEN O1 has been moved to SHIPPED via <TBD: test hook to advance fulfillment status>",
+      "custom_steps_separated": [
+        {
+          "content": "WHEN S1 attempts to cancel O1",
+          "expected": "THEN the response is 409 with code \"CANCELLATION_CLOSED\"\nAND O1 is still SHIPPED and its payment attempt is still AUTHORIZED\nAND MUG-RED available stock is 3"
+        }
+      ]
+    }
+  },
+  {
+    "scenarioId": "E2E-HARBORCART-019",
+    "sectionId": null,
+    "payload": {
+      "title": "Cancellation racing fulfillment start has exactly one winner",
+      "template_id": 2,
+      "type_id": 3,
+      "priority_id": 3,
+      "refs": "BR-16",
+      "custom_automation": 3,
+      "custom_preconds": "Cancellation and fulfillment start hit the same order at once; only one transition wins and the loser sees a consistent result.\nGIVEN the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\nAND the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\nAND registered shopper \"S1\" is signed in with a CONFIRMED order O1 for MUG-RED × 2 paid with \"tok_approve\"",
+      "custom_steps_separated": [
+        {
+          "content": "WHEN S1 submits cancellation of O1 at the same moment the warehouse service starts fulfillment of O1 via <TBD: test hook to trigger fulfillment start>",
+          "expected": "THEN exactly one of the two transitions wins\nAND if cancellation wins, O1 ends CANCELLED, its payment is VOIDED or REFUNDED, MUG-RED available stock is 5 and O1 is never FULFILLING or SHIPPED\nAND if fulfillment wins, S1 receives 409 \"CANCELLATION_CLOSED\" or O1's authoritative final status, O1 is FULFILLING and MUG-RED available stock is 3"
+        }
+      ]
+    }
+  },
+  {
+    "scenarioId": "E2E-HARBORCART-020",
+    "sectionId": null,
+    "payload": {
+      "title": "Unresolved payment past reservation expiry never confirms an order without stock",
+      "template_id": 2,
+      "type_id": 3,
+      "priority_id": 3,
+      "refs": "BR-11,BR-13,BO-02,NFR-02",
+      "custom_automation": 3,
+      "custom_preconds": "A timed-out payment stays unresolved past the 15-minute reservation window; the system never confirms an order without allocated stock.\nGIVEN the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\nAND the clock is frozen at \"2026-10-01T12:00:00Z\"\nAND the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\nAND registered shopper \"S1\" submitted checkout with \"tok_timeout\" and Idempotency-Key K1, receiving 202 with the payment attempt UNKNOWN and the reservation HELD",
+      "custom_steps_separated": [
+        {
+          "content": "WHEN the clock advances 15 minutes without reconciliation\nAND the reconciliation trigger runs with <TBD: reconciliation SLA and the sandbox inquiry result for tok_timeout>",
+          "expected": "THEN the test API shows no CONFIRMED order for K1 unless its reservation is ALLOCATED\nAND if the payment is AUTHORIZED but the stock is no longer held, the payment attempt is VOIDED and no order is CONFIRMED\nAND MUG-RED available stock is never negative"
+        }
+      ]
+    }
+  },
+  {
+    "scenarioId": "E2E-HARBORCART-021-a",
+    "sectionId": null,
+    "payload": {
+      "title": "SAVE10 discount is capped at $20.00 and the code is case-insensitive (qty: 8, code: SAVE10)",
+      "template_id": 2,
+      "type_id": 3,
+      "priority_id": 3,
+      "refs": "BR-06,BR-07,BR-08",
+      "custom_automation": 3,
+      "custom_preconds": "Quotes for 8, 9 and 10 mugs with SAVE10 in different letter cases show the 10% discount up to the $20.00 cap.\nGIVEN the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\nAND the catalog contains MUG-RED (ACTIVE, $24.00)\nAND promotion SAVE10 is active\nAND registered shopper \"S1\" is signed in with an empty cart",
+      "custom_steps_separated": [
+        {
+          "content": "WHEN S1 sets MUG-RED quantity 8 in the cart\nAND S1 requests a quote for address \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with promotion code \"SAVE10\"",
+          "expected": "THEN the quote shows merchandise $192.00, discount $19.20, shipping $0.00, tax $10.80 and total $183.60"
+        }
+      ]
+    }
+  },
+  {
+    "scenarioId": "E2E-HARBORCART-021-b",
+    "sectionId": null,
+    "payload": {
+      "title": "SAVE10 discount is capped at $20.00 and the code is case-insensitive (qty: 9, code: save10)",
+      "template_id": 2,
+      "type_id": 3,
+      "priority_id": 3,
+      "refs": "BR-06,BR-07,BR-08",
+      "custom_automation": 3,
+      "custom_preconds": "Quotes for 8, 9 and 10 mugs with SAVE10 in different letter cases show the 10% discount up to the $20.00 cap.\nGIVEN the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\nAND the catalog contains MUG-RED (ACTIVE, $24.00)\nAND promotion SAVE10 is active\nAND registered shopper \"S1\" is signed in with an empty cart",
+      "custom_steps_separated": [
+        {
+          "content": "WHEN S1 sets MUG-RED quantity 9 in the cart\nAND S1 requests a quote for address \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with promotion code \"save10\"",
+          "expected": "THEN the quote shows merchandise $216.00, discount $20.00, shipping $0.00, tax $12.25 and total $208.25"
+        }
+      ]
+    }
+  },
+  {
+    "scenarioId": "E2E-HARBORCART-021-c",
+    "sectionId": null,
+    "payload": {
+      "title": "SAVE10 discount is capped at $20.00 and the code is case-insensitive (qty: 10, code: Save10)",
+      "template_id": 2,
+      "type_id": 3,
+      "priority_id": 3,
+      "refs": "BR-06,BR-07,BR-08",
+      "custom_automation": 3,
+      "custom_preconds": "Quotes for 8, 9 and 10 mugs with SAVE10 in different letter cases show the 10% discount up to the $20.00 cap.\nGIVEN the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\nAND the catalog contains MUG-RED (ACTIVE, $24.00)\nAND promotion SAVE10 is active\nAND registered shopper \"S1\" is signed in with an empty cart",
+      "custom_steps_separated": [
+        {
+          "content": "WHEN S1 sets MUG-RED quantity 10 in the cart\nAND S1 requests a quote for address \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with promotion code \"Save10\"",
+          "expected": "THEN the quote shows merchandise $240.00, discount $20.00, shipping $0.00, tax $13.75 and total $233.75"
+        }
+      ]
+    }
+  },
+  {
+    "scenarioId": "E2E-HARBORCART-022-a",
+    "sectionId": null,
+    "payload": {
+      "title": "Shipping is free only when post-discount merchandise reaches $50.00 (BAG-BLUE × 1, promotion: none)",
+      "template_id": 2,
+      "type_id": 3,
+      "priority_id": 3,
+      "refs": "BR-07,BR-08,BR-06",
+      "custom_automation": 3,
+      "custom_preconds": "Quotes around the $50.00 threshold charge $8.00 shipping below it, measured after discount, and none above it.\nGIVEN the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\nAND the catalog contains MUG-RED (ACTIVE, $24.00) and BAG-BLUE (ACTIVE, $49.99)\nAND promotion SAVE10 is active\nAND registered shopper \"S1\" is signed in with an empty cart",
+      "custom_steps_separated": [
+        {
+          "content": "WHEN S1 adds BAG-BLUE × 1 to the cart\nAND S1 requests a quote for address \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with promotion none",
+          "expected": "THEN the quote shows merchandise $49.99, discount $0.00, shipping $8.00, tax $3.62 and total $61.61"
+        }
+      ]
+    }
+  },
+  {
+    "scenarioId": "E2E-HARBORCART-022-b",
+    "sectionId": null,
+    "payload": {
+      "title": "Shipping is free only when post-discount merchandise reaches $50.00 (BAG-BLUE × 1, promotion: code SAVE10)",
+      "template_id": 2,
+      "type_id": 3,
+      "priority_id": 3,
+      "refs": "BR-07,BR-08,BR-06",
+      "custom_automation": 3,
+      "custom_preconds": "Quotes around the $50.00 threshold charge $8.00 shipping below it, measured after discount, and none above it.\nGIVEN the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\nAND the catalog contains MUG-RED (ACTIVE, $24.00) and BAG-BLUE (ACTIVE, $49.99)\nAND promotion SAVE10 is active\nAND registered shopper \"S1\" is signed in with an empty cart",
+      "custom_steps_separated": [
+        {
+          "content": "WHEN S1 adds BAG-BLUE × 1 to the cart\nAND S1 requests a quote for address \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with promotion code \"SAVE10\"",
+          "expected": "THEN the quote shows merchandise $49.99, discount $5.00, shipping $8.00, tax $3.31 and total $56.30"
+        }
+      ]
+    }
+  },
+  {
+    "scenarioId": "E2E-HARBORCART-022-c",
+    "sectionId": null,
+    "payload": {
+      "title": "Shipping is free only when post-discount merchandise reaches $50.00 (MUG-RED × 3, promotion: none)",
+      "template_id": 2,
+      "type_id": 3,
+      "priority_id": 3,
+      "refs": "BR-07,BR-08,BR-06",
+      "custom_automation": 3,
+      "custom_preconds": "Quotes around the $50.00 threshold charge $8.00 shipping below it, measured after discount, and none above it.\nGIVEN the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\nAND the catalog contains MUG-RED (ACTIVE, $24.00) and BAG-BLUE (ACTIVE, $49.99)\nAND promotion SAVE10 is active\nAND registered shopper \"S1\" is signed in with an empty cart",
+      "custom_steps_separated": [
+        {
+          "content": "WHEN S1 adds MUG-RED × 3 to the cart\nAND S1 requests a quote for address \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with promotion none",
+          "expected": "THEN the quote shows merchandise $72.00, discount $0.00, shipping $0.00, tax $4.50 and total $76.50"
+        }
+      ]
+    }
+  },
+  {
+    "scenarioId": "E2E-HARBORCART-023",
+    "sectionId": null,
+    "payload": {
+      "title": "Shipping is free at exactly $50.00 post-discount merchandise",
+      "template_id": 2,
+      "type_id": 3,
+      "priority_id": 3,
+      "refs": "BR-07,BR-08",
+      "custom_automation": 3,
+      "custom_preconds": "A cart worth exactly $50.00 after discount gets free shipping and tax rounded half-up.\nGIVEN the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\nAND registered shopper \"S1\" is signed in with a cart whose post-discount merchandise is exactly $50.00 using <TBD: fixture for an exact $50.00 cart; not reachable with the BRD fixtures>",
+      "custom_steps_separated": [
+        {
+          "content": "WHEN S1 requests a quote for address \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with no promotion",
+          "expected": "THEN the quote shows merchandise $50.00, shipping $0.00, tax $3.13 and total $53.13"
+        }
+      ]
+    }
+  },
+  {
+    "scenarioId": "E2E-HARBORCART-024-a",
+    "sectionId": null,
+    "payload": {
+      "title": "Invalid, expired or ineligible promotion code leaves totals unchanged (code: EXPIRED10 on MUG-RED × 2)",
+      "template_id": 2,
+      "type_id": 3,
+      "priority_id": 3,
+      "refs": "BR-06",
+      "custom_automation": 3,
+      "custom_preconds": "A shopper applies a code that is expired, unknown or ineligible for the cart; it is rejected with a reason and the totals do not change.\nGIVEN the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\nAND the catalog contains MUG-RED (ACTIVE, $24.00) and GIFT-001 (ACTIVE, $15.00)\nAND promotion SAVE10 is active and promotion EXPIRED10 has an end time in the past\nAND registered shopper \"S1\" is signed in with an empty cart",
+      "custom_steps_separated": [
+        {
+          "content": "WHEN S1 adds MUG-RED × 2 to the cart and requests a quote for address \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with no promotion",
+          "expected": "THEN the quote total is $59.50"
+        },
+        {
+          "content": "WHEN S1 requests a new quote with promotion code \"EXPIRED10\"",
+          "expected": "THEN the response is 422 with a reason for the rejected code\nAND S1's quote still shows discount $0.00 and total $59.50"
+        }
+      ]
+    }
+  },
+  {
+    "scenarioId": "E2E-HARBORCART-024-b",
+    "sectionId": null,
+    "payload": {
+      "title": "Invalid, expired or ineligible promotion code leaves totals unchanged (code: NOTACODE on MUG-RED × 2)",
+      "template_id": 2,
+      "type_id": 3,
+      "priority_id": 3,
+      "refs": "BR-06",
+      "custom_automation": 3,
+      "custom_preconds": "A shopper applies a code that is expired, unknown or ineligible for the cart; it is rejected with a reason and the totals do not change.\nGIVEN the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\nAND the catalog contains MUG-RED (ACTIVE, $24.00) and GIFT-001 (ACTIVE, $15.00)\nAND promotion SAVE10 is active and promotion EXPIRED10 has an end time in the past\nAND registered shopper \"S1\" is signed in with an empty cart",
+      "custom_steps_separated": [
+        {
+          "content": "WHEN S1 adds MUG-RED × 2 to the cart and requests a quote for address \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with no promotion",
+          "expected": "THEN the quote total is $59.50"
+        },
+        {
+          "content": "WHEN S1 requests a new quote with promotion code \"NOTACODE\"",
+          "expected": "THEN the response is 422 with a reason for the rejected code\nAND S1's quote still shows discount $0.00 and total $59.50"
+        }
+      ]
+    }
+  },
+  {
+    "scenarioId": "E2E-HARBORCART-024-c",
+    "sectionId": null,
+    "payload": {
+      "title": "Invalid, expired or ineligible promotion code leaves totals unchanged (code: SAVE10 on GIFT-001 × 1)",
+      "template_id": 2,
+      "type_id": 3,
+      "priority_id": 3,
+      "refs": "BR-06",
+      "custom_automation": 3,
+      "custom_preconds": "A shopper applies a code that is expired, unknown or ineligible for the cart; it is rejected with a reason and the totals do not change.\nGIVEN the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\nAND the catalog contains MUG-RED (ACTIVE, $24.00) and GIFT-001 (ACTIVE, $15.00)\nAND promotion SAVE10 is active and promotion EXPIRED10 has an end time in the past\nAND registered shopper \"S1\" is signed in with an empty cart",
+      "custom_steps_separated": [
+        {
+          "content": "WHEN S1 adds GIFT-001 × 1 to the cart and requests a quote for address \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with no promotion",
+          "expected": "THEN the quote total is $24.44"
+        },
+        {
+          "content": "WHEN S1 requests a new quote with promotion code \"SAVE10\"",
+          "expected": "THEN the response is 422 with a reason for the rejected code\nAND S1's quote still shows discount $0.00 and total $24.44"
+        }
+      ]
+    }
+  },
+  {
+    "scenarioId": "E2E-HARBORCART-025-a",
+    "sectionId": null,
+    "payload": {
+      "title": "SAVE10 applies from its start instant up to, but not including, its end instant (1 second before start)",
+      "template_id": 2,
+      "type_id": 3,
+      "priority_id": 2,
+      "refs": "BR-06,A-03",
+      "custom_automation": 3,
+      "custom_preconds": "SAVE10 is applied at instants around its start and end; it works from the start instant and stops at the end instant.\nGIVEN the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\nAND the catalog contains MUG-RED (ACTIVE, $24.00)\nAND promotion SAVE10 has start <TBD: SAVE10 start instant> and end <TBD: SAVE10 end instant>\nAND registered shopper \"S1\" is signed in with a cart containing MUG-RED × 2",
+      "custom_steps_separated": [
+        {
+          "content": "WHEN the clock is set to 1 second before start and S1 requests a quote for address \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with promotion code \"SAVE10\"",
+          "expected": "THEN the response is 422 with a reason for the rejected code"
+        }
+      ]
+    }
+  },
+  {
+    "scenarioId": "E2E-HARBORCART-025-b",
+    "sectionId": null,
+    "payload": {
+      "title": "SAVE10 applies from its start instant up to, but not including, its end instant (exactly the start)",
+      "template_id": 2,
+      "type_id": 3,
+      "priority_id": 2,
+      "refs": "BR-06,A-03",
+      "custom_automation": 3,
+      "custom_preconds": "SAVE10 is applied at instants around its start and end; it works from the start instant and stops at the end instant.\nGIVEN the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\nAND the catalog contains MUG-RED (ACTIVE, $24.00)\nAND promotion SAVE10 has start <TBD: SAVE10 start instant> and end <TBD: SAVE10 end instant>\nAND registered shopper \"S1\" is signed in with a cart containing MUG-RED × 2",
+      "custom_steps_separated": [
+        {
+          "content": "WHEN the clock is set to exactly the start and S1 requests a quote for address \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with promotion code \"SAVE10\"",
+          "expected": "THEN the quote shows discount $4.80, shipping $8.00, tax $3.20 and total $54.40"
+        }
+      ]
+    }
+  },
+  {
+    "scenarioId": "E2E-HARBORCART-025-c",
+    "sectionId": null,
+    "payload": {
+      "title": "SAVE10 applies from its start instant up to, but not including, its end instant (1 second before end)",
+      "template_id": 2,
+      "type_id": 3,
+      "priority_id": 2,
+      "refs": "BR-06,A-03",
+      "custom_automation": 3,
+      "custom_preconds": "SAVE10 is applied at instants around its start and end; it works from the start instant and stops at the end instant.\nGIVEN the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\nAND the catalog contains MUG-RED (ACTIVE, $24.00)\nAND promotion SAVE10 has start <TBD: SAVE10 start instant> and end <TBD: SAVE10 end instant>\nAND registered shopper \"S1\" is signed in with a cart containing MUG-RED × 2",
+      "custom_steps_separated": [
+        {
+          "content": "WHEN the clock is set to 1 second before end and S1 requests a quote for address \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with promotion code \"SAVE10\"",
+          "expected": "THEN the quote shows discount $4.80, shipping $8.00, tax $3.20 and total $54.40"
+        }
+      ]
+    }
+  },
+  {
+    "scenarioId": "E2E-HARBORCART-025-d",
+    "sectionId": null,
+    "payload": {
+      "title": "SAVE10 applies from its start instant up to, but not including, its end instant (exactly the end)",
+      "template_id": 2,
+      "type_id": 3,
+      "priority_id": 2,
+      "refs": "BR-06,A-03",
+      "custom_automation": 3,
+      "custom_preconds": "SAVE10 is applied at instants around its start and end; it works from the start instant and stops at the end instant.\nGIVEN the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\nAND the catalog contains MUG-RED (ACTIVE, $24.00)\nAND promotion SAVE10 has start <TBD: SAVE10 start instant> and end <TBD: SAVE10 end instant>\nAND registered shopper \"S1\" is signed in with a cart containing MUG-RED × 2",
+      "custom_steps_separated": [
+        {
+          "content": "WHEN the clock is set to exactly the end and S1 requests a quote for address \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with promotion code \"SAVE10\"",
+          "expected": "THEN the response is 422 with a reason for the rejected code"
+        }
+      ]
+    }
+  },
+  {
+    "scenarioId": "E2E-HARBORCART-026-a",
+    "sectionId": null,
+    "payload": {
+      "title": "Cart line quantity must be a whole number from 1 to 10 (qty: 0)",
+      "template_id": 2,
+      "type_id": 3,
+      "priority_id": 3,
+      "refs": "BR-03",
+      "custom_automation": 3,
+      "custom_preconds": "A shopper sets a cart line to boundary quantities; valid values are saved and invalid ones are rejected with the cart unchanged.\nGIVEN the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\nAND the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\nAND registered shopper \"S1\" is signed in with a cart containing MUG-RED × 2",
+      "custom_steps_separated": [
+        {
+          "content": "WHEN S1 sets the MUG-RED quantity to 0 through PUT /api/v1/cart/lines/MUG-RED with the current expectedRevision",
+          "expected": "THEN the response is 422\nAND the cart shows MUG-RED × 2"
+        }
+      ]
+    }
+  },
+  {
+    "scenarioId": "E2E-HARBORCART-026-b",
+    "sectionId": null,
+    "payload": {
+      "title": "Cart line quantity must be a whole number from 1 to 10 (qty: 1)",
+      "template_id": 2,
+      "type_id": 3,
+      "priority_id": 3,
+      "refs": "BR-03",
+      "custom_automation": 3,
+      "custom_preconds": "A shopper sets a cart line to boundary quantities; valid values are saved and invalid ones are rejected with the cart unchanged.\nGIVEN the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\nAND the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\nAND registered shopper \"S1\" is signed in with a cart containing MUG-RED × 2",
+      "custom_steps_separated": [
+        {
+          "content": "WHEN S1 sets the MUG-RED quantity to 1 through PUT /api/v1/cart/lines/MUG-RED with the current expectedRevision",
+          "expected": "THEN the response is 200\nAND the cart shows MUG-RED × 1"
+        }
+      ]
+    }
+  },
+  {
+    "scenarioId": "E2E-HARBORCART-026-c",
+    "sectionId": null,
+    "payload": {
+      "title": "Cart line quantity must be a whole number from 1 to 10 (qty: 10)",
+      "template_id": 2,
+      "type_id": 3,
+      "priority_id": 3,
+      "refs": "BR-03",
+      "custom_automation": 3,
+      "custom_preconds": "A shopper sets a cart line to boundary quantities; valid values are saved and invalid ones are rejected with the cart unchanged.\nGIVEN the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\nAND the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\nAND registered shopper \"S1\" is signed in with a cart containing MUG-RED × 2",
+      "custom_steps_separated": [
+        {
+          "content": "WHEN S1 sets the MUG-RED quantity to 10 through PUT /api/v1/cart/lines/MUG-RED with the current expectedRevision",
+          "expected": "THEN the response is 200\nAND the cart shows MUG-RED × 10"
+        }
+      ]
+    }
+  },
+  {
+    "scenarioId": "E2E-HARBORCART-026-d",
+    "sectionId": null,
+    "payload": {
+      "title": "Cart line quantity must be a whole number from 1 to 10 (qty: 11)",
+      "template_id": 2,
+      "type_id": 3,
+      "priority_id": 3,
+      "refs": "BR-03",
+      "custom_automation": 3,
+      "custom_preconds": "A shopper sets a cart line to boundary quantities; valid values are saved and invalid ones are rejected with the cart unchanged.\nGIVEN the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\nAND the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\nAND registered shopper \"S1\" is signed in with a cart containing MUG-RED × 2",
+      "custom_steps_separated": [
+        {
+          "content": "WHEN S1 sets the MUG-RED quantity to 11 through PUT /api/v1/cart/lines/MUG-RED with the current expectedRevision",
+          "expected": "THEN the response is 422\nAND the cart shows MUG-RED × 2"
+        }
+      ]
+    }
+  },
+  {
+    "scenarioId": "E2E-HARBORCART-026-e",
+    "sectionId": null,
+    "payload": {
+      "title": "Cart line quantity must be a whole number from 1 to 10 (qty: 1.5)",
+      "template_id": 2,
+      "type_id": 3,
+      "priority_id": 3,
+      "refs": "BR-03",
+      "custom_automation": 3,
+      "custom_preconds": "A shopper sets a cart line to boundary quantities; valid values are saved and invalid ones are rejected with the cart unchanged.\nGIVEN the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\nAND the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\nAND registered shopper \"S1\" is signed in with a cart containing MUG-RED × 2",
+      "custom_steps_separated": [
+        {
+          "content": "WHEN S1 sets the MUG-RED quantity to 1.5 through PUT /api/v1/cart/lines/MUG-RED with the current expectedRevision",
+          "expected": "THEN the response is 422\nAND the cart shows MUG-RED × 2"
+        }
+      ]
+    }
+  },
+  {
+    "scenarioId": "E2E-HARBORCART-027",
+    "sectionId": null,
+    "payload": {
+      "title": "Adding the same product twice merges into one cart line",
+      "template_id": 2,
+      "type_id": 3,
+      "priority_id": 2,
+      "refs": "BR-03",
+      "custom_automation": 3,
+      "custom_preconds": "A shopper adds the same SKU twice and the cart shows one line with the summed quantity.\nGIVEN the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\nAND the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\nAND registered shopper \"S1\" is signed in with an empty cart",
+      "custom_steps_separated": [
+        {
+          "content": "WHEN S1 adds MUG-RED × 2 from the product detail page\nAND S1 adds MUG-RED × 3 again from the search results",
+          "expected": "THEN the cart shows a single MUG-RED line with quantity 5"
+        }
+      ]
+    }
+  },
+  {
+    "scenarioId": "E2E-HARBORCART-028",
+    "sectionId": null,
+    "payload": {
+      "title": "Concurrent cart edits from two tabs do not lose updates",
+      "template_id": 2,
+      "type_id": 3,
+      "priority_id": 2,
+      "refs": "BR-03,BR-04",
+      "custom_automation": 3,
+      "custom_preconds": "A shopper edits the cart from two tabs; the stale edit is rejected and the first edit survives.\nGIVEN the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\nAND the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\nAND registered shopper \"S1\" is signed in with a cart containing MUG-RED × 2 at revision r",
+      "custom_steps_separated": [
+        {
+          "content": "WHEN S1, in tab A, sets MUG-RED quantity to 3 with expectedRevision r",
+          "expected": "THEN the response is 200 and the cart revision advances"
+        },
+        {
+          "content": "WHEN S1, in tab B, sets MUG-RED quantity to 4 with the stale expectedRevision r",
+          "expected": "THEN the response is 409\nAND the cart shows MUG-RED × 3"
+        }
+      ]
+    }
+  },
+  {
+    "scenarioId": "E2E-HARBORCART-029",
+    "sectionId": null,
+    "payload": {
+      "title": "Cart is limited to 20 distinct SKUs",
+      "template_id": 2,
+      "type_id": 3,
+      "priority_id": 2,
+      "refs": "BR-03",
+      "custom_automation": 3,
+      "custom_preconds": "A shopper with 20 distinct SKUs in the cart cannot add a 21st.\nGIVEN the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\nAND the catalog contains 21 distinct ACTIVE SKUs X1–X21 <TBD: 21 SKU fixtures; the BRD defines only 3 ACTIVE SKUs>\nAND registered shopper \"S1\" is signed in with a cart containing X1–X20, each × 1",
+      "custom_steps_separated": [
+        {
+          "content": "WHEN S1 adds X21 × 1 to the cart",
+          "expected": "THEN the add is rejected with <TBD: status and error code for the 20-SKU limit>\nAND the cart still contains exactly X1–X20, each × 1"
+        }
+      ]
+    }
+  },
+  {
+    "scenarioId": "E2E-HARBORCART-030",
+    "sectionId": null,
+    "payload": {
+      "title": "Search finds active products by name or SKU regardless of case",
+      "template_id": 2,
+      "type_id": 3,
+      "priority_id": 3,
+      "refs": "BR-01",
+      "custom_automation": 3,
+      "custom_preconds": "A guest searches by SKU, by name in a different case and with an empty query; only active products appear, sorted by name then SKU.\nGIVEN the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\nAND the catalog contains MUG-RED, BAG-BLUE and GIFT-001 (ACTIVE) and OLD-HAT (INACTIVE)\nAND guest shopper \"G1\" opens the web app",
+      "custom_steps_separated": [
+        {
+          "content": "WHEN G1 searches for \"mug-red\"",
+          "expected": "THEN the results include MUG-RED"
+        },
+        {
+          "content": "WHEN G1 searches for MUG-RED's product name, as shown on its detail page, typed in upper case",
+          "expected": "THEN the results include MUG-RED"
+        },
+        {
+          "content": "WHEN G1 searches for \"OLD-HAT\"",
+          "expected": "THEN no results are returned"
+        },
+        {
+          "content": "WHEN G1 submits an empty search",
+          "expected": "THEN the results are paginated, sorted by name then SKU, include MUG-RED, BAG-BLUE and GIFT-001, and do not include OLD-HAT"
+        }
+      ]
+    }
+  },
+  {
+    "scenarioId": "E2E-HARBORCART-031",
+    "sectionId": null,
+    "payload": {
+      "title": "Inactive or unknown product has no detail page",
+      "template_id": 2,
+      "type_id": 3,
+      "priority_id": 3,
+      "refs": "BR-02",
+      "custom_automation": 3,
+      "custom_preconds": "Requests for an inactive or unknown SKU return 404 and show no product details.\nGIVEN the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\nAND the catalog contains OLD-HAT (INACTIVE, $12.00)\nAND guest shopper \"G1\" opens the web app",
+      "custom_steps_separated": [
+        {
+          "content": "WHEN G1 requests GET /api/v1/products/OLD-HAT",
+          "expected": "THEN the response is 404"
+        },
+        {
+          "content": "WHEN G1 requests GET /api/v1/products/NO-SUCH-SKU",
+          "expected": "THEN the response is 404"
+        },
+        {
+          "content": "WHEN G1 opens the product detail URL for OLD-HAT in the web app",
+          "expected": "THEN no price or add-to-cart control is shown for OLD-HAT"
+        }
+      ]
+    }
+  },
+  {
+    "scenarioId": "E2E-HARBORCART-032",
+    "sectionId": null,
+    "payload": {
+      "title": "Price change after adding to cart is shown for confirmation before payment",
+      "template_id": 2,
+      "type_id": 3,
+      "priority_id": 3,
+      "refs": "BR-05,A-02",
+      "custom_automation": 3,
+      "custom_preconds": "The catalog price changes after a shopper adds an item; the quote uses the new price and the shopper confirms it before paying.\nGIVEN the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\nAND the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\nAND registered shopper \"S1\" is signed in with a cart containing MUG-RED × 2 displayed at $24.00",
+      "custom_steps_separated": [
+        {
+          "content": "WHEN the MUG-RED price is changed to <TBD: new price> via <TBD: test hook to change a catalog price>\nAND S1 requests a quote for address \"Pat Shopper, 100 Harbor St, Boston, MA 02110\"",
+          "expected": "THEN the quote uses the new unit price and S1 is shown the price change for confirmation before payment"
+        },
+        {
+          "content": "WHEN S1 confirms the changed price and pays with \"tok_approve\"",
+          "expected": "THEN the order is CONFIRMED at the new unit price"
+        }
+      ]
+    }
+  },
+  {
+    "scenarioId": "E2E-HARBORCART-033",
+    "sectionId": null,
+    "payload": {
+      "title": "Deactivated item in the cart fails the quote as unavailable",
+      "template_id": 2,
+      "type_id": 3,
+      "priority_id": 3,
+      "refs": "BR-05",
+      "custom_automation": 3,
+      "custom_preconds": "A cart holds a product that has since become inactive; the quote fails with ITEM_UNAVAILABLE and nothing is charged.\nGIVEN the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\nAND the catalog contains MUG-RED (ACTIVE, $24.00, stock 5) and OLD-HAT (INACTIVE, $12.00)\nAND registered shopper \"S1\" has a cart containing MUG-RED × 1 and OLD-HAT × 1, seeded via <TBD: test hook to seed a cart line for a SKU that later became INACTIVE>",
+      "custom_steps_separated": [
+        {
+          "content": "WHEN S1 requests a quote for address \"Pat Shopper, 100 Harbor St, Boston, MA 02110\"",
+          "expected": "THEN the response is 409 with code \"ITEM_UNAVAILABLE\"\nAND no quote is created and the test API shows no payment attempt for S1"
+        }
+      ]
+    }
+  },
+  {
+    "scenarioId": "E2E-HARBORCART-034-a",
+    "sectionId": null,
+    "payload": {
+      "title": "Checkout address is validated field by field (name: empty)",
+      "template_id": 2,
+      "type_id": 3,
+      "priority_id": 4,
+      "refs": "BR-10,A-01",
+      "custom_automation": 3,
+      "custom_preconds": "A shopper submits an address with one invalid field, sees the field error, corrects it, and gets a quote.\nGIVEN the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\nAND the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\nAND registered shopper \"S1\" is signed in with a cart containing MUG-RED × 2\nAND the valid address is \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with S1's email",
+      "custom_steps_separated": [
+        {
+          "content": "WHEN S1 requests a quote with the valid address except name set to \"\"",
+          "expected": "THEN the response is 422 with a field error for name\nAND no quote is created\nAND S1 sees the error next to the name field"
+        },
+        {
+          "content": "WHEN S1 corrects name to its valid value and requests the quote again",
+          "expected": "THEN the quote is created with total $59.50"
+        }
+      ]
+    }
+  },
+  {
+    "scenarioId": "E2E-HARBORCART-034-b",
+    "sectionId": null,
+    "payload": {
+      "title": "Checkout address is validated field by field (address line 1: empty)",
+      "template_id": 2,
+      "type_id": 3,
+      "priority_id": 4,
+      "refs": "BR-10,A-01",
+      "custom_automation": 3,
+      "custom_preconds": "A shopper submits an address with one invalid field, sees the field error, corrects it, and gets a quote.\nGIVEN the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\nAND the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\nAND registered shopper \"S1\" is signed in with a cart containing MUG-RED × 2\nAND the valid address is \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with S1's email",
+      "custom_steps_separated": [
+        {
+          "content": "WHEN S1 requests a quote with the valid address except address line 1 set to \"\"",
+          "expected": "THEN the response is 422 with a field error for address line 1\nAND no quote is created\nAND S1 sees the error next to the address line 1 field"
+        },
+        {
+          "content": "WHEN S1 corrects address line 1 to its valid value and requests the quote again",
+          "expected": "THEN the quote is created with total $59.50"
+        }
+      ]
+    }
+  },
+  {
+    "scenarioId": "E2E-HARBORCART-034-c",
+    "sectionId": null,
+    "payload": {
+      "title": "Checkout address is validated field by field (city: empty)",
+      "template_id": 2,
+      "type_id": 3,
+      "priority_id": 4,
+      "refs": "BR-10,A-01",
+      "custom_automation": 3,
+      "custom_preconds": "A shopper submits an address with one invalid field, sees the field error, corrects it, and gets a quote.\nGIVEN the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\nAND the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\nAND registered shopper \"S1\" is signed in with a cart containing MUG-RED × 2\nAND the valid address is \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with S1's email",
+      "custom_steps_separated": [
+        {
+          "content": "WHEN S1 requests a quote with the valid address except city set to \"\"",
+          "expected": "THEN the response is 422 with a field error for city\nAND no quote is created\nAND S1 sees the error next to the city field"
+        },
+        {
+          "content": "WHEN S1 corrects city to its valid value and requests the quote again",
+          "expected": "THEN the quote is created with total $59.50"
+        }
+      ]
+    }
+  },
+  {
+    "scenarioId": "E2E-HARBORCART-034-d",
+    "sectionId": null,
+    "payload": {
+      "title": "Checkout address is validated field by field (state: HI)",
+      "template_id": 2,
+      "type_id": 3,
+      "priority_id": 4,
+      "refs": "BR-10,A-01",
+      "custom_automation": 3,
+      "custom_preconds": "A shopper submits an address with one invalid field, sees the field error, corrects it, and gets a quote.\nGIVEN the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\nAND the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\nAND registered shopper \"S1\" is signed in with a cart containing MUG-RED × 2\nAND the valid address is \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with S1's email",
+      "custom_steps_separated": [
+        {
+          "content": "WHEN S1 requests a quote with the valid address except state set to \"HI\"",
+          "expected": "THEN the response is 422 with a field error for state\nAND no quote is created\nAND S1 sees the error next to the state field"
+        },
+        {
+          "content": "WHEN S1 corrects state to its valid value and requests the quote again",
+          "expected": "THEN the quote is created with total $59.50"
+        }
+      ]
+    }
+  },
+  {
+    "scenarioId": "E2E-HARBORCART-034-e",
+    "sectionId": null,
+    "payload": {
+      "title": "Checkout address is validated field by field (state: AK)",
+      "template_id": 2,
+      "type_id": 3,
+      "priority_id": 4,
+      "refs": "BR-10,A-01",
+      "custom_automation": 3,
+      "custom_preconds": "A shopper submits an address with one invalid field, sees the field error, corrects it, and gets a quote.\nGIVEN the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\nAND the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\nAND registered shopper \"S1\" is signed in with a cart containing MUG-RED × 2\nAND the valid address is \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with S1's email",
+      "custom_steps_separated": [
+        {
+          "content": "WHEN S1 requests a quote with the valid address except state set to \"AK\"",
+          "expected": "THEN the response is 422 with a field error for state\nAND no quote is created\nAND S1 sees the error next to the state field"
+        },
+        {
+          "content": "WHEN S1 corrects state to its valid value and requests the quote again",
+          "expected": "THEN the quote is created with total $59.50"
+        }
+      ]
+    }
+  },
+  {
+    "scenarioId": "E2E-HARBORCART-034-f",
+    "sectionId": null,
+    "payload": {
+      "title": "Checkout address is validated field by field (state: Mass)",
+      "template_id": 2,
+      "type_id": 3,
+      "priority_id": 4,
+      "refs": "BR-10,A-01",
+      "custom_automation": 3,
+      "custom_preconds": "A shopper submits an address with one invalid field, sees the field error, corrects it, and gets a quote.\nGIVEN the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\nAND the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\nAND registered shopper \"S1\" is signed in with a cart containing MUG-RED × 2\nAND the valid address is \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with S1's email",
+      "custom_steps_separated": [
+        {
+          "content": "WHEN S1 requests a quote with the valid address except state set to \"Mass\"",
+          "expected": "THEN the response is 422 with a field error for state\nAND no quote is created\nAND S1 sees the error next to the state field"
+        },
+        {
+          "content": "WHEN S1 corrects state to its valid value and requests the quote again",
+          "expected": "THEN the quote is created with total $59.50"
+        }
+      ]
+    }
+  },
+  {
+    "scenarioId": "E2E-HARBORCART-034-g",
+    "sectionId": null,
+    "payload": {
+      "title": "Checkout address is validated field by field (ZIP: 0211)",
+      "template_id": 2,
+      "type_id": 3,
+      "priority_id": 4,
+      "refs": "BR-10,A-01",
+      "custom_automation": 3,
+      "custom_preconds": "A shopper submits an address with one invalid field, sees the field error, corrects it, and gets a quote.\nGIVEN the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\nAND the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\nAND registered shopper \"S1\" is signed in with a cart containing MUG-RED × 2\nAND the valid address is \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with S1's email",
+      "custom_steps_separated": [
+        {
+          "content": "WHEN S1 requests a quote with the valid address except ZIP set to \"0211\"",
+          "expected": "THEN the response is 422 with a field error for ZIP\nAND no quote is created\nAND S1 sees the error next to the ZIP field"
+        },
+        {
+          "content": "WHEN S1 corrects ZIP to its valid value and requests the quote again",
+          "expected": "THEN the quote is created with total $59.50"
+        }
+      ]
+    }
+  },
+  {
+    "scenarioId": "E2E-HARBORCART-034-h",
+    "sectionId": null,
+    "payload": {
+      "title": "Checkout address is validated field by field (ZIP: ABCDE)",
+      "template_id": 2,
+      "type_id": 3,
+      "priority_id": 4,
+      "refs": "BR-10,A-01",
+      "custom_automation": 3,
+      "custom_preconds": "A shopper submits an address with one invalid field, sees the field error, corrects it, and gets a quote.\nGIVEN the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\nAND the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\nAND registered shopper \"S1\" is signed in with a cart containing MUG-RED × 2\nAND the valid address is \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with S1's email",
+      "custom_steps_separated": [
+        {
+          "content": "WHEN S1 requests a quote with the valid address except ZIP set to \"ABCDE\"",
+          "expected": "THEN the response is 422 with a field error for ZIP\nAND no quote is created\nAND S1 sees the error next to the ZIP field"
+        },
+        {
+          "content": "WHEN S1 corrects ZIP to its valid value and requests the quote again",
+          "expected": "THEN the quote is created with total $59.50"
+        }
+      ]
+    }
+  },
+  {
+    "scenarioId": "E2E-HARBORCART-034-i",
+    "sectionId": null,
+    "payload": {
+      "title": "Checkout address is validated field by field (email: pat.example.test)",
+      "template_id": 2,
+      "type_id": 3,
+      "priority_id": 4,
+      "refs": "BR-10,A-01",
+      "custom_automation": 3,
+      "custom_preconds": "A shopper submits an address with one invalid field, sees the field error, corrects it, and gets a quote.\nGIVEN the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\nAND the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\nAND registered shopper \"S1\" is signed in with a cart containing MUG-RED × 2\nAND the valid address is \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with S1's email",
+      "custom_steps_separated": [
+        {
+          "content": "WHEN S1 requests a quote with the valid address except email set to \"pat.example.test\"",
+          "expected": "THEN the response is 422 with a field error for email\nAND no quote is created\nAND S1 sees the error next to the email field"
+        },
+        {
+          "content": "WHEN S1 corrects email to its valid value and requests the quote again",
+          "expected": "THEN the quote is created with total $59.50"
+        }
+      ]
+    }
+  },
+  {
+    "scenarioId": "E2E-HARBORCART-034-j",
+    "sectionId": null,
+    "payload": {
+      "title": "Checkout address is validated field by field (email: empty)",
+      "template_id": 2,
+      "type_id": 3,
+      "priority_id": 4,
+      "refs": "BR-10,A-01",
+      "custom_automation": 3,
+      "custom_preconds": "A shopper submits an address with one invalid field, sees the field error, corrects it, and gets a quote.\nGIVEN the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\nAND the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\nAND registered shopper \"S1\" is signed in with a cart containing MUG-RED × 2\nAND the valid address is \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with S1's email",
+      "custom_steps_separated": [
+        {
+          "content": "WHEN S1 requests a quote with the valid address except email set to \"\"",
+          "expected": "THEN the response is 422 with a field error for email\nAND no quote is created\nAND S1 sees the error next to the email field"
+        },
+        {
+          "content": "WHEN S1 corrects email to its valid value and requests the quote again",
+          "expected": "THEN the quote is created with total $59.50"
+        }
+      ]
+    }
+  },
+  {
+    "scenarioId": "E2E-HARBORCART-035",
+    "sectionId": null,
+    "payload": {
+      "title": "Keyboard-only shopper completes checkout and hears address errors announced",
+      "template_id": 2,
+      "type_id": 3,
+      "priority_id": 3,
+      "refs": "NFR-04,BR-10",
+      "custom_automation": 3,
+      "custom_preconds": "A keyboard-only guest using a screen reader completes the purchase journey, including recovering from an announced address error.\nGIVEN the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\nAND the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\nAND guest shopper \"G1\" uses only the keyboard, with a screen reader running",
+      "custom_steps_separated": [
+        {
+          "content": "WHEN G1 searches for \"MUG-RED\", opens its details and adds quantity 1 to the cart using only the keyboard",
+          "expected": "THEN keyboard focus is visible at every step and the cart shows MUG-RED × 1"
+        },
+        {
+          "content": "WHEN G1 reaches checkout by keyboard and submits the address form with ZIP \"ABCDE\"",
+          "expected": "THEN the ZIP field error is announced by the screen reader and G1 can move focus to the ZIP field by keyboard"
+        },
+        {
+          "content": "WHEN G1 corrects the ZIP to \"02110\" and requests the quote",
+          "expected": "THEN the quote shows merchandise $24.00, shipping $8.00, tax $2.00 and total $34.00"
+        },
+        {
+          "content": "WHEN G1 completes the sandbox card widget, which yields token \"tok_approve\", and places the order using only the keyboard",
+          "expected": "THEN G1 reaches the order confirmation with an order number and total $34.00"
+        }
+      ]
+    }
+  },
+  {
+    "scenarioId": "E2E-HARBORCART-036",
+    "sectionId": null,
+    "payload": {
+      "title": "Card details never reach HarborCart APIs or events",
+      "template_id": 2,
+      "type_id": 3,
+      "priority_id": 4,
+      "refs": "BR-11,NFR-03,NFR-05",
+      "custom_automation": 3,
+      "custom_preconds": "During a UI checkout, card data stays in the provider widget; HarborCart requests, responses and events carry only the token.\nGIVEN the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\nAND the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\nAND registered shopper \"S1\" is signed in with a cart containing MUG-RED × 1\nAND browser network capture and event capture are enabled",
+      "custom_steps_separated": [
+        {
+          "content": "WHEN S1 checks out with address \"Pat Shopper, 100 Harbor St, Boston, MA 02110\", entering card details in the sandbox provider widget, which yields token \"tok_approve\"",
+          "expected": "THEN S1 sees an order confirmation with total $34.00\nAND no captured request to /api/v1 contains the card number or CVV, and the order request carries only the payment token\nAND no /api/v1 response or page shown to S1 contains the card number or CVV\nAND event capture for the order contains no card number or CVV"
+        }
+      ]
+    }
+  },
+  {
+    "scenarioId": "E2E-HARBORCART-037",
+    "sectionId": null,
+    "payload": {
+      "title": "Idempotency keys are scoped to the shopper who used them",
+      "template_id": 2,
+      "type_id": 3,
+      "priority_id": 2,
+      "refs": "BR-12,BR-17",
+      "custom_automation": 3,
+      "custom_preconds": "A second shopper reusing the first shopper's idempotency key neither sees the first shopper's order nor is blocked from their own.\nGIVEN the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\nAND the catalog contains MUG-RED (ACTIVE, $24.00, stock 5) and GIFT-001 (ACTIVE, $15.00, stock 20)\nAND registered shopper \"S1\" has placed order O1 with Idempotency-Key K1 and \"tok_approve\"\nAND registered shopper \"S2\" is signed in with quote q2 for GIFT-001 × 1 at address \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with total $24.44",
+      "custom_steps_separated": [
+        {
+          "content": "WHEN S2 requests GET /api/v1/checkout/requests/K1",
+          "expected": "THEN the response does not reveal O1 or any of S1's order data"
+        },
+        {
+          "content": "WHEN S2 submits checkout for q2 with \"tok_approve\" and Idempotency-Key K1",
+          "expected": "THEN the response is 201 with a new order owned by S2\nAND S1's order O1 is unchanged"
+        }
+      ]
+    }
+  }
+]
