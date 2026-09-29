@@ -1,7 +1,7 @@
 {
-  "name": "playwright_automation",
+  "name": "ai-qe-workflows",
   "version": "1.0.0",
-  "description": "",
+  "description": "Playwright test automation project in JavaScript and TypeScript with agentic flows for AI-assisted quality engineering",
   "main": "index.js",
   "scripts": {
     "test:cucumber": "cucumber-js feature/ --require feature/support/hooks.js --require feature/step_definitions/steps.js",
