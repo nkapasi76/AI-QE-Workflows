@@ -26,30 +26,35 @@ const { devices } = require('@playwright/test');
   }
 ] */
 
+const isCI = !!process.env.CI;
+
 const config = {
   testDir: './tests',
-  testMatch: '**/*.spec.js',
+  testMatch: '**/*.spec.{js,ts}',
 
   /* Maximum time one test can run for. */
 timeout: 30 * 1000,
   expect: {
-  
+
     timeout: 5000
   },
 
-  reporter: 
-  ["html", { open: "always" }],
+  retries: 1, //retries the test once if it fails.
+
+  // open: 'always' serves the report and waits, which would hang CI
+  reporter: [["html", { open: isCI ? "never" : "always" }]],
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
 
     browserName: 'chromium',
-    headless: false,
+    headless: isCI, //headed locally; CI runners have no display
     screenshot: 'only-on-failure',
     trace: 'on',//off,on
     video: 'only-on-failure', //video is created when the test fails.
-    retries: 1 //retries the test once if it fails.
 
   },
 
 
 };
+
+module.exports = config;

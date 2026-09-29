@@ -9,7 +9,7 @@ setDefaultTimeout(100000);
 Given ('when a successful login to the Ecommerce application with {string} and {string}', async function (username, password){
 
 const loginPage = this.poManager.getLoginPage();
-await loginPage.goto();
+await loginPage.goTo();
 await loginPage.validLogin(username, password);
 })
 
