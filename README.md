@@ -31,6 +31,8 @@ The repo also includes **GitHub Copilot agents**. They turn requirements (a BRD 
   - [Workflow 2: From Jira, into TestRail and Jira](#workflow-2-from-jira-into-testrail-and-jira)
   - [Output Formats](#output-formats)
   - [From Test Plan to Automated Tests](#from-test-plan-to-automated-tests)
+  - [AI First-Pass Code Review](#ai-first-pass-code-review)
+  - [Release Certification Bug Analysis](#release-certification-bug-analysis)
 - [Copilot Skills](#copilot-skills)
 - [CI/CD](#cicd)
 - [Troubleshooting](#troubleshooting)
@@ -369,11 +371,13 @@ The agents run in **VS Code GitHub Copilot Chat**. They read requirements and wr
 
 | Agent (name in the Copilot agent picker) | File | Use it for |
 | --- | --- | --- |
-| **Test Cases Creation - E2E Test Creator v3 (Docs)** | `beta-testcases-creation-e2e-v3-docs.agent.md` | Creating the test plan and tests from **local BRD and design documents**. No Jira or TestRail access is needed. |
-| **Test Cases Creation - E2E Test Creator v3 (Jira + TestRail)** | `beta-testcases-creation-e2e-v3.agent.md` | Creating tests from a **Jira Epic/Feature**, importing approved tests into **TestRail**, and creating linked **Jira tickets** |
+| **Test Cases Creation - E2E Test Creator v3 (Docs)** | `e2e-agentic-flow-requirements-gherkin-style-testscenarios.agent.md` | Creating the test plan and tests from **local BRD and design documents**. No Jira or TestRail access is needed. |
+| **Test Cases Creation - E2E Test Creator v3 (Jira + TestRail)** | `e2e-agentic-flow-jira-testrail-gherkin-style-testscenarios.agent.md` | Creating tests from a **Jira Epic/Feature**, importing approved tests into **TestRail**, and creating linked **Jira tickets** |
 | **playwright-test-planner** | `playwright-test-planner.agent.md` | Exploring a live web app and writing a test plan in `spec/` |
 | **playwright-test-generator** | `playwright-test-generator.agent.md` | Turning test plan items into Playwright specs in `tests/` |
 | **playwright-test-healer** | `playwright-test-healer.agent.md` | Debugging and fixing failing Playwright tests |
+| **Playwright Code Review Agent (First Pass)** | `playwright-code-review.agent.md` | First look at a GitHub PR or local branch. A human confirms the findings, and the agent then requests a human reviewer to complete the review. |
+| **Release Certification Bug Analyzer** | `release-bug-analyzer.agent.md` | Categorizing release certification tickets from Jira (read-only). A human reviews the categories, then the agent reports patterns and coverage gaps for QA leadership. |
 | **Thinking Beast Mode** | `Thinking-Beast-Mode.agent.md` | General autonomous coding |
 
 The E2E Test Creator agents coordinate three internal workers. These don't appear in the picker:
@@ -535,6 +539,73 @@ The Playwright agents turn plans into runnable specs:
 3. **playwright-test-healer:** reruns failing specs and fixes their locators and waits.
 
 These agents use the `playwright-test` MCP server configured in `.vscode/mcp.json`.
+
+### AI First-Pass Code Review
+
+**Playwright Code Review Agent (First Pass)** reviews changes against this repo's rules:
+- floating promises and missing `await`;
+- hard waits, brittle locators, and non-web-first assertions;
+- `test.only`, and specs that won't be discovered;
+- page object method mismatches, `POManager` registration, and JS ↔ TS page object parity;
+- Cucumber step matching;
+- config and CI changes, committed artifacts, and secrets.
+
+**A human always completes the review.**
+
+1. **Setup (PR mode):** `brew install gh && gh auth login`. Local branch reviews need no setup.
+2. In Copilot Chat, pick **Playwright Code Review Agent (First Pass)** and send `Review PR 12`, or `Review my current branch`.
+3. The agent runs read-only checks:
+   - `playwright test --list` on the changed specs;
+   - a Cucumber `--dry-run`;
+   - `node --check`;
+   - artifact and secret scans.
+
+   It then writes `reports/code-review-<id>.md` and **stops for your triage**:
+   ```
+   confirm all | confirm F-01, F-03 | dismiss F-02: <reason> | edit F-04: <text>
+   reviewers: @qa-lead        run tests        publish        report only
+   ```
+4. **Publishing:** only after you reply `publish` and confirm a preview, it:
+   - posts a **comment-only** review (inline comments on changed lines, plus a summary);
+   - adds the `ai-first-pass-reviewed` label;
+   - **requests a review from the named human reviewer**, and GitHub notifies them.
+5. **The final decision is the reviewer's.** The agent never approves, requests changes, merges, pushes, or edits code. It doesn't run the tests unless you reply `run tests`.
+
+GitHub won't request a review from the PR's own author. On a solo repo, the agent assigns and labels the PR instead, and its triage stop in chat is your notification.
+
+The report and PR comment formats are in `.github/templates/code-review/report-template.md`.
+
+### Release Certification Bug Analysis
+
+**Release Certification Bug Analyzer** reads a release's certification tickets from Jira. It is **read-only**: it never modifies Jira, Confluence, TestRail, or code. It categorizes every ticket on eight dimensions, recording the evidence and a confidence level for each:
+
+| Dimension | Values |
+| --------- | ------ |
+| Defect status | Defect · Not a defect · Duplicate · Cannot reproduce · Works as designed |
+| Origin | Regression · New feature · Pre-existing · Unknown |
+| Category | Functional · Integration · Data · UI/UX · Performance · Configuration/Environment · Security |
+| Severity | Critical · High · Medium · Low (from the Severity field, or derived from priority) |
+| Detection | Automation · Manual certification · Production · Unknown |
+| Root cause | As stated in the ticket, or `Not stated` |
+| Component | From Jira, or `Unassigned` |
+| Expected test level | Unit · Integration/API · E2E · Regression suite · Exploratory |
+
+1. **Setup:** the `atlassian-cli` skill (`acli jira auth login`), or the Atlassian MCP server in `.vscode/mcp.json`. Access is limited to the MLP and TCOE projects.
+2. In Copilot Chat, pick **Release Certification Bug Analyzer** and send, for example: `Analyze release-2026.2 certification bugs, window 2026-09-01 to 2026-09-20`. Add `include test coverage` to also search this repo's specs, Gherkin features and test plans, plus any sibling repos checked out alongside it.
+3. The agent writes `tmp/release-bugs-<run-id>/categorization.csv` and **stops for your review**:
+   ```
+   approve | set MLP-123 origin=Regression, category=Integration  [reason] | reload | include test coverage | stop
+   ```
+   Overrides are logged in the report's Human Review Log.
+4. **After `approve`,** it writes `reports/release-bug-analysis/release-bug-analysis-<run-id>.md`:
+   - an executive summary;
+   - breakdowns by category, origin, severity, detection and component;
+   - resolution outcomes, a timeline, and root causes;
+   - coverage gaps and recommendations, each citing ticket keys.
+
+   Stories and tasks in the query are reported but excluded from the defect percentages.
+
+Because `reports/` is committed in this repo, review the report for client names and other sensitive details before committing it. By default the agent writes `Client A`, `Client B` instead of client names.
 
 ---
 
