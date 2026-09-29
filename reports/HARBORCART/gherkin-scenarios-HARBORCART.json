@@ -1,0 +1,500 @@
+[
+  {
+    "testName": "Registered shopper buys mugs and a gift item with SAVE10 and receives confirmation",
+    "references": [
+      "BR-01",
+      "BR-02",
+      "BR-03",
+      "BR-06",
+      "BR-07",
+      "BR-08",
+      "BR-09",
+      "BR-10",
+      "BR-12",
+      "BR-13",
+      "BR-14",
+      "BR-15",
+      "BO-01"
+    ],
+    "gherkin": "Feature: Registered shopper buys mugs and a gift item with SAVE10 and receives confirmation\n\n  Background:\n    Given the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\n    And the clock is frozen at \"2026-10-01T12:00:00Z\"\n    And the catalog contains MUG-RED (ACTIVE, $24.00, stock 5) and GIFT-001 (ACTIVE, $15.00, stock 20)\n    And promotion SAVE10 is active\n    And registered shopper \"S1\" with a unique email is signed in with an empty cart\n\n  @E2E-HARBORCART-001 @e2e @p1 @happy-path @user-journey @cross-functional\n  Scenario: Registered shopper buys mugs and a gift item with SAVE10 and receives confirmation\n    When S1 searches the catalog for \"mug-red\"\n    Then MUG-RED appears in the search results\n    When S1 opens the MUG-RED product details\n    Then the page shows SKU \"MUG-RED\", its name, description, price $24.00 and a stock status\n    When S1 adds MUG-RED with quantity 2 to the cart\n    And S1 searches for \"GIFT-001\" and adds GIFT-001 with quantity 1 to the cart\n    Then the cart shows MUG-RED × 2 and GIFT-001 × 1\n    When S1 proceeds to checkout, enters the address \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with S1's email, and applies promotion code \"SAVE10\"\n    Then the quote shows merchandise $63.00, discount $4.80, shipping $0.00, tax $3.64 and total $61.84\n    And the quote expiresAt is \"2026-10-01T12:10:00Z\"\n    When S1 confirms the quote and pays through the sandbox card widget, which yields token \"tok_approve\"\n    Then S1 sees an order confirmation with an order number and total $61.84\n    And the test API shows exactly one CONFIRMED order for S1 with a payment reference\n    And the test API shows exactly one payment attempt, AUTHORIZED for 6184 cents\n    And the reservation is ALLOCATED and available stock is MUG-RED 3 and GIFT-001 19\n    And S1's cart no longer contains MUG-RED or GIFT-001\n    And event capture shows exactly one OrderConfirmed event for the order\n    And eventually, within the configured async deadline, the sandbox email provider holds exactly one confirmation email to S1's email\n    When S1 opens order history\n    Then the new order is listed first with total $61.84 and status CONFIRMED"
+  },
+  {
+    "testName": "Guest buys the last blue bag and later retrieves the order with a verification code",
+    "references": [
+      "BR-04",
+      "BR-07",
+      "BR-08",
+      "BR-12",
+      "BR-15",
+      "NFR-05"
+    ],
+    "gherkin": "Feature: Guest buys the last blue bag and later retrieves the order with a verification code\n\n  Background:\n    Given the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\n    And the catalog contains BAG-BLUE (ACTIVE, $49.99, stock 1)\n    And guest shopper \"G1\" has a new browser session and a unique email\n\n  @E2E-HARBORCART-002 @e2e @p1 @happy-path @user-journey @security\n  Scenario: Guest buys the last blue bag and later retrieves the order with a verification code\n    When G1 adds BAG-BLUE with quantity 1 to the session cart without signing in\n    Then the session cart shows BAG-BLUE × 1\n    When G1 checks out with the address \"Pat Shopper, 100 Harbor St, Boston, MA 02110\", G1's email and no promotion code\n    Then the quote shows merchandise $49.99, discount $0.00, shipping $8.00, tax $3.62 and total $61.61\n    When G1 pays with sandbox token \"tok_approve\"\n    Then G1 sees an order confirmation with an order number and total $61.61\n    And the test API shows one CONFIRMED guest order and BAG-BLUE available stock 0\n    When G1, in a new browser session, requests an order lookup with the order number and G1's email\n    Then eventually, within the configured async deadline, a one-time verification code is delivered to G1's email in the sandbox email provider\n    When G1 submits the order number, G1's email and the verification code\n    Then G1 sees the order with BAG-BLUE × 1 and total $61.61\n    When G1 submits the same verification code a second time\n    Then the order details are not shown\n    When a lookup is attempted with the order number, a different email and G1's verification code\n    Then the order details are not shown\n    When an unauthenticated client requests GET /api/v1/orders\n    Then no order list is returned\n    And event capture for this journey contains no verification code values"
+  },
+  {
+    "testName": "Shopper cannot view or cancel another shopper's order",
+    "references": [
+      "BR-17",
+      "NFR-03"
+    ],
+    "gherkin": "Feature: Shopper cannot view or cancel another shopper's order\n\n  Background:\n    Given the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\n    And the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\n    And registered shopper \"S1\" has a CONFIRMED order O1 for MUG-RED × 1 paid with \"tok_approve\"\n    And registered shopper \"S2\" is signed in\n\n  @E2E-HARBORCART-003 @e2e @p1 @permissions @security @negative\n  Scenario: Shopper cannot view or cancel another shopper's order\n    When S2 requests GET /api/v1/orders/{O1 id}\n    Then the response is 404\n    When S2 opens O1's order detail URL in the web app\n    Then S2 sees a not-found result and none of O1's details\n    When S2 requests POST /api/v1/orders/{O1 id}/cancel\n    Then the response is 404\n    And the test API shows O1 still CONFIRMED, its payment attempt still AUTHORIZED and MUG-RED available stock 4\n    When S2 opens order history\n    Then O1 is not listed"
+  },
+  {
+    "testName": "Order history lists only the shopper's own orders, newest first",
+    "references": [
+      "BR-15",
+      "BR-17"
+    ],
+    "gherkin": "Feature: Order history lists only the shopper's own orders, newest first\n\n  Background:\n    Given the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\n    And the clock is frozen at \"2026-10-01T12:00:00Z\"\n    And the catalog contains MUG-RED (ACTIVE, $24.00, stock 5) and GIFT-001 (ACTIVE, $15.00, stock 20)\n    And registered shoppers \"S1\" and \"S2\" each have a unique email\n\n  @E2E-HARBORCART-004 @e2e @p2 @user-role @permissions\n  Scenario: Order history lists only the shopper's own orders, newest first\n    When S1 places order A for MUG-RED × 1 with \"tok_approve\"\n    And the clock advances 1 minute and S1 places order B for GIFT-001 × 1 with \"tok_approve\"\n    And S2 places order C for GIFT-001 × 1 with \"tok_approve\"\n    Then the test API shows orders A, B and C as CONFIRMED\n    When S1 opens order history\n    Then S1 sees exactly orders B and A, in that order\n    When S2 opens order history\n    Then S2 sees exactly order C"
+  },
+  {
+    "testName": "Support agent views a shopper's order through the audited support role",
+    "references": [
+      "BR-17",
+      "NFR-03"
+    ],
+    "gherkin": "Feature: Support agent views a shopper's order through the audited support role\n\n  Background:\n    Given the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\n    And registered shopper \"S1\" has a CONFIRMED order O1 for MUG-RED × 1 paid with \"tok_approve\"\n    And support agent \"A1\" is signed in to the support console with <TBD: support role name and account provisioning>\n    And registered shopper \"S2\" without the support role is signed in\n\n  @E2E-HARBORCART-005 @e2e @p2 @user-role @permissions @security\n  Scenario: Support agent views a shopper's order through the audited support role\n    When A1 looks up O1 in the support console\n    Then A1 sees O1's details\n    And an audit record of A1's access to O1 is available through <TBD: documented way to read support audit records>\n    When S2 requests GET /api/v1/orders/{O1 id}\n    Then the response is 404"
+  },
+  {
+    "testName": "Guest cart merges into the account cart at sign-in, capped at 10 per SKU",
+    "references": [
+      "BR-04"
+    ],
+    "gherkin": "Feature: Guest cart merges into the account cart at sign-in, capped at 10 per SKU\n\n  Background:\n    Given the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\n    And the catalog contains MUG-RED (ACTIVE, $24.00, stock 5) and GIFT-001 (ACTIVE, $15.00, stock 20)\n    And registered shopper \"S1\" has an account cart containing MUG-RED × 7\n    And S1 is signed out with an empty guest session cart\n\n  @E2E-HARBORCART-006 @e2e @p2 @user-journey @boundary\n  Scenario: Guest cart merges into the account cart at sign-in, capped at 10 per SKU\n    When S1, as a guest, adds MUG-RED × 4 and GIFT-001 × 1 to the session cart\n    Then the session cart shows MUG-RED × 4 and GIFT-001 × 1\n    When S1 signs in\n    Then S1's account cart shows MUG-RED × 10 and GIFT-001 × 1"
+  },
+  {
+    "testName": "Cart merge is rejected when the combined cart would exceed 20 SKUs",
+    "references": [
+      "BR-03",
+      "BR-04"
+    ],
+    "gherkin": "Feature: Cart merge is rejected when the combined cart would exceed 20 SKUs\n\n  Background:\n    Given the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\n    And the catalog contains 21 distinct ACTIVE SKUs X1–X21 <TBD: 21 SKU fixtures; the BRD defines only 3 ACTIVE SKUs>\n    And registered shopper \"S1\" has an account cart containing X1–X12, each × 1\n    And S1 is signed out with a guest session cart containing X13–X21, each × 1\n\n  @E2E-HARBORCART-007 @e2e @p3 @negative @boundary\n  Scenario: Cart merge is rejected when the combined cart would exceed 20 SKUs\n    When S1 signs in\n    Then the cart merge is rejected with 409\n    And S1's account cart still contains exactly X1–X12, each × 1\n    And the guest session cart still contains exactly X13–X21, each × 1"
+  },
+  {
+    "testName": "Declined payment releases reserved stock and creates no order",
+    "references": [
+      "BR-11",
+      "BR-13",
+      "BO-02"
+    ],
+    "gherkin": "Feature: Declined payment releases reserved stock and creates no order\n\n  Background:\n    Given the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\n    And the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\n    And registered shopper \"S1\" is signed in with a cart containing MUG-RED × 2\n    And S1 has a valid quote q1 for address \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with no promotion and total $59.50\n\n  @E2E-HARBORCART-008 @e2e @p1 @negative @error-handling @recovery\n  Scenario: Declined payment releases reserved stock and creates no order\n    When S1 submits checkout for q1 with token \"tok_decline\" and a new Idempotency-Key\n    Then the response is 422 with code \"PAYMENT_DECLINED\"\n    And S1 sees that the payment was declined and no order confirmation is shown\n    And the test API shows exactly one payment attempt, DECLINED, and no order for S1\n    And the reservation is RELEASED and MUG-RED available stock is 5\n    And event capture shows no OrderConfirmed event"
+  },
+  {
+    "testName": "Payment timeout stays pending until reconciliation, without a second charge",
+    "references": [
+      "BR-11",
+      "BR-12",
+      "BR-13",
+      "NFR-02",
+      "BO-03"
+    ],
+    "gherkin": "Feature: Payment timeout stays pending until reconciliation, without a second charge\n\n  Background:\n    Given the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\n    And the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\n    And registered shopper \"S1\" is signed in with a cart containing MUG-RED × 2\n    And S1 has a valid quote q1 for address \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with no promotion and total $59.50\n\n  @E2E-HARBORCART-009 @e2e @p1 @error-handling @recovery\n  Scenario: Payment timeout stays pending until reconciliation, without a second charge\n    When S1 submits checkout for q1 with token \"tok_timeout\" and Idempotency-Key K1\n    Then the response is 202\n    And S1 sees a pending payment state and no order confirmation\n    And GET /api/v1/checkout/requests/K1 returns state UNKNOWN\n    And the test API shows the payment attempt UNKNOWN and the reservation HELD\n    When S1 retries the same request with Idempotency-Key K1\n    Then the response is the original 202 response\n    And the test API shows exactly one payment attempt for K1\n    When the reconciliation trigger runs\n    Then eventually, within the configured async deadline, GET /api/v1/checkout/requests/K1 returns CONFIRMED or FAILED\n    And if CONFIRMED, exactly one CONFIRMED order exists, the reservation is ALLOCATED, MUG-RED available stock is 3 and exactly one OrderConfirmed event is captured\n    And if FAILED, no order exists, the reservation is RELEASED and MUG-RED available stock is 5\n    And the test API still shows exactly one payment attempt for K1"
+  },
+  {
+    "testName": "Double submit and browser refresh create one order and one charge",
+    "references": [
+      "BR-12",
+      "BO-03"
+    ],
+    "gherkin": "Feature: Double submit and browser refresh create one order and one charge\n\n  Background:\n    Given the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\n    And the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\n    And registered shopper \"S1\" is signed in with a cart containing MUG-RED × 2\n    And S1 has a valid quote q1 for address \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with no promotion and total $59.50\n\n  @E2E-HARBORCART-010 @e2e @p1 @concurrency @recovery @edge-case\n  Scenario: Double submit and browser refresh create one order and one charge\n    When S1 double-clicks Place order, so requests R1 and R2 with the same Idempotency-Key K1, quote q1 and token \"tok_approve\" are sent concurrently\n    Then at most one of R1 and R2 returns 201, and every successful response carries the same order number\n    And the test API shows exactly one CONFIRMED order and exactly one payment attempt, AUTHORIZED for 5950 cents\n    And MUG-RED available stock is 3\n    When S1 refreshes the browser after payment and the client re-sends the checkout request with Idempotency-Key K1\n    Then the response is 200 with the same order number as the original response\n    And S1 has exactly one order in order history and event capture shows exactly one OrderConfirmed event"
+  },
+  {
+    "testName": "Reusing an idempotency key with a different order is rejected",
+    "references": [
+      "BR-12"
+    ],
+    "gherkin": "Feature: Reusing an idempotency key with a different order is rejected\n\n  Background:\n    Given the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\n    And the catalog contains MUG-RED (ACTIVE, $24.00, stock 5) and GIFT-001 (ACTIVE, $15.00, stock 20)\n    And registered shopper \"S1\" is signed in and has placed order O1 for MUG-RED × 2 with Idempotency-Key K1 and \"tok_approve\"\n    And S1 has since added GIFT-001 × 1 to the cart and created quote q2 for address \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with total $24.44\n\n  @E2E-HARBORCART-011 @e2e @p1 @negative @error-handling\n  Scenario: Reusing an idempotency key with a different order is rejected\n    When S1 submits checkout for q2 with \"tok_approve\" and the same Idempotency-Key K1\n    Then the response is 409 with code \"IDEMPOTENCY_CONFLICT\"\n    And the test API shows S1 still has only order O1 and one payment attempt\n    And GIFT-001 available stock is 20\n    When S1 submits checkout for q2 with \"tok_approve\" and a new Idempotency-Key K2\n    Then the response is 201 with an order number different from O1"
+  },
+  {
+    "testName": "Two shoppers race for the last blue bag and exactly one wins",
+    "references": [
+      "BR-13",
+      "BO-02",
+      "NFR-05"
+    ],
+    "gherkin": "Feature: Two shoppers race for the last blue bag and exactly one wins\n\n  Background:\n    Given the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\n    And the catalog contains BAG-BLUE (ACTIVE, $49.99, stock 1)\n    And registered shoppers \"S1\" and \"S2\" are signed in, each with a cart containing BAG-BLUE × 1 and a valid quote for address \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with total $61.61\n\n  @E2E-HARBORCART-012 @e2e @p1 @concurrency @negative @cross-functional\n  Scenario: Two shoppers race for the last blue bag and exactly one wins\n    When S1 and S2 submit checkout at the same moment, each with \"tok_approve\" and their own Idempotency-Key\n    Then exactly one response is 201 with an order number\n    And the other response is 409 with code \"OUT_OF_STOCK\", details.sku \"BAG-BLUE\" and a correlationId\n    And the test API shows no payment attempt for the losing shopper\n    And BAG-BLUE available stock is 0, never negative, with exactly one ALLOCATED reservation\n    And event capture shows exactly one OrderConfirmed event\n    When the losing shopper opens order history\n    Then no order is listed"
+  },
+  {
+    "testName": "Ordering more than the available stock fails before any payment",
+    "references": [
+      "BR-13"
+    ],
+    "gherkin": "Feature: Ordering more than the available stock fails before any payment\n\n  Background:\n    Given the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\n    And the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\n    And registered shopper \"S1\" is signed in with a cart containing MUG-RED × 6\n    And S1 has a valid quote q1 for address \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with no promotion and total $153.00\n\n  @E2E-HARBORCART-013 @e2e @p1 @negative @boundary\n  Scenario: Ordering more than the available stock fails before any payment\n    When S1 submits checkout for q1 with \"tok_approve\" and a new Idempotency-Key\n    Then the response is 409 with code \"OUT_OF_STOCK\" and details.sku \"MUG-RED\"\n    And S1 sees that MUG-RED is out of stock and no order confirmation is shown\n    And the test API shows no payment attempt and no order for S1\n    And MUG-RED available stock is 5"
+  },
+  {
+    "testName": "Quote is honored until expiry and refused after it without charging (checkout at 2026-10-01T12:09:59Z)",
+    "references": [
+      "BR-09"
+    ],
+    "gherkin": "Feature: Quote is honored until expiry and refused after it without charging (checkout at 2026-10-01T12:09:59Z)\n\n  Background:\n    Given the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\n    And the clock is frozen at \"2026-10-01T12:00:00Z\"\n    And the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\n    And registered shopper \"S1\" is signed in with a cart containing MUG-RED × 2\n\n  @E2E-HARBORCART-014-a @e2e @p1 @boundary @negative\n  Scenario: Quote is honored until expiry and refused after it without charging (checkout at 2026-10-01T12:09:59Z)\n    When S1 creates quote q1 for address \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with no promotion\n    Then q1 shows total $59.50 and expiresAt \"2026-10-01T12:10:00Z\"\n    When the clock advances to \"2026-10-01T12:09:59Z\" and S1 submits checkout for q1 with \"tok_approve\"\n    Then the response is 201 with a CONFIRMED order\n    And the test API shows 1 order(s) and 1 payment attempt(s) for S1\n    And MUG-RED available stock is 3"
+  },
+  {
+    "testName": "Quote is honored until expiry and refused after it without charging (checkout at 2026-10-01T12:10:01Z)",
+    "references": [
+      "BR-09"
+    ],
+    "gherkin": "Feature: Quote is honored until expiry and refused after it without charging (checkout at 2026-10-01T12:10:01Z)\n\n  Background:\n    Given the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\n    And the clock is frozen at \"2026-10-01T12:00:00Z\"\n    And the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\n    And registered shopper \"S1\" is signed in with a cart containing MUG-RED × 2\n\n  @E2E-HARBORCART-014-b @e2e @p1 @boundary @negative\n  Scenario: Quote is honored until expiry and refused after it without charging (checkout at 2026-10-01T12:10:01Z)\n    When S1 creates quote q1 for address \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with no promotion\n    Then q1 shows total $59.50 and expiresAt \"2026-10-01T12:10:00Z\"\n    When the clock advances to \"2026-10-01T12:10:01Z\" and S1 submits checkout for q1 with \"tok_approve\"\n    Then the response is 409 with code \"QUOTE_EXPIRED\"\n    And the test API shows 0 order(s) and 0 payment attempt(s) for S1\n    And MUG-RED available stock is 5"
+  },
+  {
+    "testName": "Changing the cart after quoting invalidates the quote",
+    "references": [
+      "BR-09",
+      "BR-07",
+      "BR-08"
+    ],
+    "gherkin": "Feature: Changing the cart after quoting invalidates the quote\n\n  Background:\n    Given the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\n    And the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\n    And registered shopper \"S1\" is signed in with a cart containing MUG-RED × 2\n    And S1 has a valid quote q1 for address \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with no promotion and total $59.50\n\n  @E2E-HARBORCART-015 @e2e @p1 @negative @recovery\n  Scenario: Changing the cart after quoting invalidates the quote\n    When S1 changes the MUG-RED quantity in the cart to 3\n    And S1 submits checkout for q1 with \"tok_approve\" and a new Idempotency-Key\n    Then the response is 409 with code \"QUOTE_CHANGED\"\n    And the test API shows no payment attempt and no order for S1, and MUG-RED available stock is 5\n    When S1 requests a new quote q2 with the same address and no promotion\n    Then q2 shows merchandise $72.00, discount $0.00, shipping $0.00, tax $4.50 and total $76.50\n    When S1 submits checkout for q2 with \"tok_approve\" and a new Idempotency-Key\n    Then the response is 201 and S1 sees an order confirmation with total $76.50"
+  },
+  {
+    "testName": "Email outage does not reverse a confirmed order",
+    "references": [
+      "BR-14",
+      "NFR-02"
+    ],
+    "gherkin": "Feature: Email outage does not reverse a confirmed order\n\n  Background:\n    Given the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\n    And the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\n    And registered shopper \"S1\" is signed in with a cart containing MUG-RED × 2 and a valid quote for address \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with total $59.50\n    And the sandbox email provider is unavailable via <TBD: test hook to put the sandbox email provider into a failure mode>\n\n  @E2E-HARBORCART-016 @e2e @p2 @error-handling @recovery\n  Scenario: Email outage does not reverse a confirmed order\n    When S1 submits checkout with \"tok_approve\"\n    Then S1 sees an order confirmation with an order number and total $59.50\n    And the test API shows the order CONFIRMED and its confirmation notification in a retryable state\n    And no confirmation email has been delivered\n    When the sandbox email provider becomes available again\n    Then eventually, within the configured async deadline, exactly one confirmation email is delivered to S1\n    And the order is still CONFIRMED"
+  },
+  {
+    "testName": "Cancelling a confirmed order voids payment and releases stock exactly once",
+    "references": [
+      "BR-16",
+      "BR-13",
+      "BR-14"
+    ],
+    "gherkin": "Feature: Cancelling a confirmed order voids payment and releases stock exactly once\n\n  Background:\n    Given the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\n    And the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\n    And registered shopper \"S1\" is signed in with a CONFIRMED order O1 for MUG-RED × 2 paid with \"tok_approve\"\n    And fulfillment of O1 has not started and MUG-RED available stock is 3\n\n  @E2E-HARBORCART-017 @e2e @p1 @user-journey @recovery @edge-case\n  Scenario: Cancelling a confirmed order voids payment and releases stock exactly once\n    When S1 cancels O1 from order history\n    Then the cancel response is 200 with status CANCELLED, or 202 with status CANCEL_PENDING\n    And eventually, within the configured async deadline, O1 status is CANCELLED\n    And O1's payment attempt is VOIDED or REFUNDED\n    And MUG-RED available stock is 5\n    And eventually, within the configured async deadline, S1 receives a cancellation notification in the sandbox email provider\n    When S1 submits the cancellation for O1 a second time\n    Then O1 remains CANCELLED\n    And MUG-RED available stock is still 5\n    When S1 opens order history\n    Then O1 is shown with status CANCELLED"
+  },
+  {
+    "testName": "Cancellation is refused once fulfillment has started (status: FULFILLING)",
+    "references": [
+      "BR-16"
+    ],
+    "gherkin": "Feature: Cancellation is refused once fulfillment has started (status: FULFILLING)\n\n  Background:\n    Given the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\n    And the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\n    And registered shopper \"S1\" is signed in with a CONFIRMED order O1 for MUG-RED × 2 paid with \"tok_approve\"\n\n  @E2E-HARBORCART-018-a @e2e @p2 @negative\n  Scenario: Cancellation is refused once fulfillment has started (status: FULFILLING)\n    Given O1 has been moved to FULFILLING via <TBD: test hook to advance fulfillment status>\n    When S1 attempts to cancel O1\n    Then the response is 409 with code \"CANCELLATION_CLOSED\"\n    And O1 is still FULFILLING and its payment attempt is still AUTHORIZED\n    And MUG-RED available stock is 3"
+  },
+  {
+    "testName": "Cancellation is refused once fulfillment has started (status: SHIPPED)",
+    "references": [
+      "BR-16"
+    ],
+    "gherkin": "Feature: Cancellation is refused once fulfillment has started (status: SHIPPED)\n\n  Background:\n    Given the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\n    And the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\n    And registered shopper \"S1\" is signed in with a CONFIRMED order O1 for MUG-RED × 2 paid with \"tok_approve\"\n\n  @E2E-HARBORCART-018-b @e2e @p2 @negative\n  Scenario: Cancellation is refused once fulfillment has started (status: SHIPPED)\n    Given O1 has been moved to SHIPPED via <TBD: test hook to advance fulfillment status>\n    When S1 attempts to cancel O1\n    Then the response is 409 with code \"CANCELLATION_CLOSED\"\n    And O1 is still SHIPPED and its payment attempt is still AUTHORIZED\n    And MUG-RED available stock is 3"
+  },
+  {
+    "testName": "Cancellation racing fulfillment start has exactly one winner",
+    "references": [
+      "BR-16"
+    ],
+    "gherkin": "Feature: Cancellation racing fulfillment start has exactly one winner\n\n  Background:\n    Given the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\n    And the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\n    And registered shopper \"S1\" is signed in with a CONFIRMED order O1 for MUG-RED × 2 paid with \"tok_approve\"\n\n  @E2E-HARBORCART-019 @e2e @p2 @concurrency @edge-case\n  Scenario: Cancellation racing fulfillment start has exactly one winner\n    When S1 submits cancellation of O1 at the same moment the warehouse service starts fulfillment of O1 via <TBD: test hook to trigger fulfillment start>\n    Then exactly one of the two transitions wins\n    And if cancellation wins, O1 ends CANCELLED, its payment is VOIDED or REFUNDED, MUG-RED available stock is 5 and O1 is never FULFILLING or SHIPPED\n    And if fulfillment wins, S1 receives 409 \"CANCELLATION_CLOSED\" or O1's authoritative final status, O1 is FULFILLING and MUG-RED available stock is 3"
+  },
+  {
+    "testName": "Unresolved payment past reservation expiry never confirms an order without stock",
+    "references": [
+      "BR-11",
+      "BR-13",
+      "BO-02",
+      "NFR-02"
+    ],
+    "gherkin": "Feature: Unresolved payment past reservation expiry never confirms an order without stock\n\n  Background:\n    Given the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\n    And the clock is frozen at \"2026-10-01T12:00:00Z\"\n    And the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\n    And registered shopper \"S1\" submitted checkout with \"tok_timeout\" and Idempotency-Key K1, receiving 202 with the payment attempt UNKNOWN and the reservation HELD\n\n  @E2E-HARBORCART-020 @e2e @p2 @recovery @edge-case\n  Scenario: Unresolved payment past reservation expiry never confirms an order without stock\n    When the clock advances 15 minutes without reconciliation\n    And the reconciliation trigger runs with <TBD: reconciliation SLA and the sandbox inquiry result for tok_timeout>\n    Then the test API shows no CONFIRMED order for K1 unless its reservation is ALLOCATED\n    And if the payment is AUTHORIZED but the stock is no longer held, the payment attempt is VOIDED and no order is CONFIRMED\n    And MUG-RED available stock is never negative"
+  },
+  {
+    "testName": "SAVE10 discount is capped at $20.00 and the code is case-insensitive (qty: 8, code: SAVE10)",
+    "references": [
+      "BR-06",
+      "BR-07",
+      "BR-08"
+    ],
+    "gherkin": "Feature: SAVE10 discount is capped at $20.00 and the code is case-insensitive (qty: 8, code: SAVE10)\n\n  Background:\n    Given the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\n    And the catalog contains MUG-RED (ACTIVE, $24.00)\n    And promotion SAVE10 is active\n    And registered shopper \"S1\" is signed in with an empty cart\n\n  @E2E-HARBORCART-021-a @e2e @p2 @boundary\n  Scenario: SAVE10 discount is capped at $20.00 and the code is case-insensitive (qty: 8, code: SAVE10)\n    When S1 sets MUG-RED quantity 8 in the cart\n    And S1 requests a quote for address \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with promotion code \"SAVE10\"\n    Then the quote shows merchandise $192.00, discount $19.20, shipping $0.00, tax $10.80 and total $183.60"
+  },
+  {
+    "testName": "SAVE10 discount is capped at $20.00 and the code is case-insensitive (qty: 9, code: save10)",
+    "references": [
+      "BR-06",
+      "BR-07",
+      "BR-08"
+    ],
+    "gherkin": "Feature: SAVE10 discount is capped at $20.00 and the code is case-insensitive (qty: 9, code: save10)\n\n  Background:\n    Given the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\n    And the catalog contains MUG-RED (ACTIVE, $24.00)\n    And promotion SAVE10 is active\n    And registered shopper \"S1\" is signed in with an empty cart\n\n  @E2E-HARBORCART-021-b @e2e @p2 @boundary\n  Scenario: SAVE10 discount is capped at $20.00 and the code is case-insensitive (qty: 9, code: save10)\n    When S1 sets MUG-RED quantity 9 in the cart\n    And S1 requests a quote for address \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with promotion code \"save10\"\n    Then the quote shows merchandise $216.00, discount $20.00, shipping $0.00, tax $12.25 and total $208.25"
+  },
+  {
+    "testName": "SAVE10 discount is capped at $20.00 and the code is case-insensitive (qty: 10, code: Save10)",
+    "references": [
+      "BR-06",
+      "BR-07",
+      "BR-08"
+    ],
+    "gherkin": "Feature: SAVE10 discount is capped at $20.00 and the code is case-insensitive (qty: 10, code: Save10)\n\n  Background:\n    Given the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\n    And the catalog contains MUG-RED (ACTIVE, $24.00)\n    And promotion SAVE10 is active\n    And registered shopper \"S1\" is signed in with an empty cart\n\n  @E2E-HARBORCART-021-c @e2e @p2 @boundary\n  Scenario: SAVE10 discount is capped at $20.00 and the code is case-insensitive (qty: 10, code: Save10)\n    When S1 sets MUG-RED quantity 10 in the cart\n    And S1 requests a quote for address \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with promotion code \"Save10\"\n    Then the quote shows merchandise $240.00, discount $20.00, shipping $0.00, tax $13.75 and total $233.75"
+  },
+  {
+    "testName": "Shipping is free only when post-discount merchandise reaches $50.00 (BAG-BLUE × 1, promotion: none)",
+    "references": [
+      "BR-07",
+      "BR-08",
+      "BR-06"
+    ],
+    "gherkin": "Feature: Shipping is free only when post-discount merchandise reaches $50.00 (BAG-BLUE × 1, promotion: none)\n\n  Background:\n    Given the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\n    And the catalog contains MUG-RED (ACTIVE, $24.00) and BAG-BLUE (ACTIVE, $49.99)\n    And promotion SAVE10 is active\n    And registered shopper \"S1\" is signed in with an empty cart\n\n  @E2E-HARBORCART-022-a @e2e @p2 @boundary\n  Scenario: Shipping is free only when post-discount merchandise reaches $50.00 (BAG-BLUE × 1, promotion: none)\n    When S1 adds BAG-BLUE × 1 to the cart\n    And S1 requests a quote for address \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with promotion none\n    Then the quote shows merchandise $49.99, discount $0.00, shipping $8.00, tax $3.62 and total $61.61"
+  },
+  {
+    "testName": "Shipping is free only when post-discount merchandise reaches $50.00 (BAG-BLUE × 1, promotion: code SAVE10)",
+    "references": [
+      "BR-07",
+      "BR-08",
+      "BR-06"
+    ],
+    "gherkin": "Feature: Shipping is free only when post-discount merchandise reaches $50.00 (BAG-BLUE × 1, promotion: code SAVE10)\n\n  Background:\n    Given the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\n    And the catalog contains MUG-RED (ACTIVE, $24.00) and BAG-BLUE (ACTIVE, $49.99)\n    And promotion SAVE10 is active\n    And registered shopper \"S1\" is signed in with an empty cart\n\n  @E2E-HARBORCART-022-b @e2e @p2 @boundary\n  Scenario: Shipping is free only when post-discount merchandise reaches $50.00 (BAG-BLUE × 1, promotion: code SAVE10)\n    When S1 adds BAG-BLUE × 1 to the cart\n    And S1 requests a quote for address \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with promotion code \"SAVE10\"\n    Then the quote shows merchandise $49.99, discount $5.00, shipping $8.00, tax $3.31 and total $56.30"
+  },
+  {
+    "testName": "Shipping is free only when post-discount merchandise reaches $50.00 (MUG-RED × 3, promotion: none)",
+    "references": [
+      "BR-07",
+      "BR-08",
+      "BR-06"
+    ],
+    "gherkin": "Feature: Shipping is free only when post-discount merchandise reaches $50.00 (MUG-RED × 3, promotion: none)\n\n  Background:\n    Given the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\n    And the catalog contains MUG-RED (ACTIVE, $24.00) and BAG-BLUE (ACTIVE, $49.99)\n    And promotion SAVE10 is active\n    And registered shopper \"S1\" is signed in with an empty cart\n\n  @E2E-HARBORCART-022-c @e2e @p2 @boundary\n  Scenario: Shipping is free only when post-discount merchandise reaches $50.00 (MUG-RED × 3, promotion: none)\n    When S1 adds MUG-RED × 3 to the cart\n    And S1 requests a quote for address \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with promotion none\n    Then the quote shows merchandise $72.00, discount $0.00, shipping $0.00, tax $4.50 and total $76.50"
+  },
+  {
+    "testName": "Shipping is free at exactly $50.00 post-discount merchandise",
+    "references": [
+      "BR-07",
+      "BR-08"
+    ],
+    "gherkin": "Feature: Shipping is free at exactly $50.00 post-discount merchandise\n\n  Background:\n    Given the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\n    And registered shopper \"S1\" is signed in with a cart whose post-discount merchandise is exactly $50.00 using <TBD: fixture for an exact $50.00 cart; not reachable with the BRD fixtures>\n\n  @E2E-HARBORCART-023 @e2e @p2 @boundary\n  Scenario: Shipping is free at exactly $50.00 post-discount merchandise\n    When S1 requests a quote for address \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with no promotion\n    Then the quote shows merchandise $50.00, shipping $0.00, tax $3.13 and total $53.13"
+  },
+  {
+    "testName": "Invalid, expired or ineligible promotion code leaves totals unchanged (code: EXPIRED10 on MUG-RED × 2)",
+    "references": [
+      "BR-06"
+    ],
+    "gherkin": "Feature: Invalid, expired or ineligible promotion code leaves totals unchanged (code: EXPIRED10 on MUG-RED × 2)\n\n  Background:\n    Given the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\n    And the catalog contains MUG-RED (ACTIVE, $24.00) and GIFT-001 (ACTIVE, $15.00)\n    And promotion SAVE10 is active and promotion EXPIRED10 has an end time in the past\n    And registered shopper \"S1\" is signed in with an empty cart\n\n  @E2E-HARBORCART-024-a @e2e @p2 @negative\n  Scenario: Invalid, expired or ineligible promotion code leaves totals unchanged (code: EXPIRED10 on MUG-RED × 2)\n    When S1 adds MUG-RED × 2 to the cart and requests a quote for address \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with no promotion\n    Then the quote total is $59.50\n    When S1 requests a new quote with promotion code \"EXPIRED10\"\n    Then the response is 422 with a reason for the rejected code\n    And S1's quote still shows discount $0.00 and total $59.50"
+  },
+  {
+    "testName": "Invalid, expired or ineligible promotion code leaves totals unchanged (code: NOTACODE on MUG-RED × 2)",
+    "references": [
+      "BR-06"
+    ],
+    "gherkin": "Feature: Invalid, expired or ineligible promotion code leaves totals unchanged (code: NOTACODE on MUG-RED × 2)\n\n  Background:\n    Given the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\n    And the catalog contains MUG-RED (ACTIVE, $24.00) and GIFT-001 (ACTIVE, $15.00)\n    And promotion SAVE10 is active and promotion EXPIRED10 has an end time in the past\n    And registered shopper \"S1\" is signed in with an empty cart\n\n  @E2E-HARBORCART-024-b @e2e @p2 @negative\n  Scenario: Invalid, expired or ineligible promotion code leaves totals unchanged (code: NOTACODE on MUG-RED × 2)\n    When S1 adds MUG-RED × 2 to the cart and requests a quote for address \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with no promotion\n    Then the quote total is $59.50\n    When S1 requests a new quote with promotion code \"NOTACODE\"\n    Then the response is 422 with a reason for the rejected code\n    And S1's quote still shows discount $0.00 and total $59.50"
+  },
+  {
+    "testName": "Invalid, expired or ineligible promotion code leaves totals unchanged (code: SAVE10 on GIFT-001 × 1)",
+    "references": [
+      "BR-06"
+    ],
+    "gherkin": "Feature: Invalid, expired or ineligible promotion code leaves totals unchanged (code: SAVE10 on GIFT-001 × 1)\n\n  Background:\n    Given the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\n    And the catalog contains MUG-RED (ACTIVE, $24.00) and GIFT-001 (ACTIVE, $15.00)\n    And promotion SAVE10 is active and promotion EXPIRED10 has an end time in the past\n    And registered shopper \"S1\" is signed in with an empty cart\n\n  @E2E-HARBORCART-024-c @e2e @p2 @negative\n  Scenario: Invalid, expired or ineligible promotion code leaves totals unchanged (code: SAVE10 on GIFT-001 × 1)\n    When S1 adds GIFT-001 × 1 to the cart and requests a quote for address \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with no promotion\n    Then the quote total is $24.44\n    When S1 requests a new quote with promotion code \"SAVE10\"\n    Then the response is 422 with a reason for the rejected code\n    And S1's quote still shows discount $0.00 and total $24.44"
+  },
+  {
+    "testName": "SAVE10 applies from its start instant up to, but not including, its end instant (1 second before start)",
+    "references": [
+      "BR-06",
+      "A-03"
+    ],
+    "gherkin": "Feature: SAVE10 applies from its start instant up to, but not including, its end instant (1 second before start)\n\n  Background:\n    Given the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\n    And the catalog contains MUG-RED (ACTIVE, $24.00)\n    And promotion SAVE10 has start <TBD: SAVE10 start instant> and end <TBD: SAVE10 end instant>\n    And registered shopper \"S1\" is signed in with a cart containing MUG-RED × 2\n\n  @E2E-HARBORCART-025-a @e2e @p3 @boundary\n  Scenario: SAVE10 applies from its start instant up to, but not including, its end instant (1 second before start)\n    When the clock is set to 1 second before start and S1 requests a quote for address \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with promotion code \"SAVE10\"\n    Then the response is 422 with a reason for the rejected code"
+  },
+  {
+    "testName": "SAVE10 applies from its start instant up to, but not including, its end instant (exactly the start)",
+    "references": [
+      "BR-06",
+      "A-03"
+    ],
+    "gherkin": "Feature: SAVE10 applies from its start instant up to, but not including, its end instant (exactly the start)\n\n  Background:\n    Given the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\n    And the catalog contains MUG-RED (ACTIVE, $24.00)\n    And promotion SAVE10 has start <TBD: SAVE10 start instant> and end <TBD: SAVE10 end instant>\n    And registered shopper \"S1\" is signed in with a cart containing MUG-RED × 2\n\n  @E2E-HARBORCART-025-b @e2e @p3 @boundary\n  Scenario: SAVE10 applies from its start instant up to, but not including, its end instant (exactly the start)\n    When the clock is set to exactly the start and S1 requests a quote for address \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with promotion code \"SAVE10\"\n    Then the quote shows discount $4.80, shipping $8.00, tax $3.20 and total $54.40"
+  },
+  {
+    "testName": "SAVE10 applies from its start instant up to, but not including, its end instant (1 second before end)",
+    "references": [
+      "BR-06",
+      "A-03"
+    ],
+    "gherkin": "Feature: SAVE10 applies from its start instant up to, but not including, its end instant (1 second before end)\n\n  Background:\n    Given the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\n    And the catalog contains MUG-RED (ACTIVE, $24.00)\n    And promotion SAVE10 has start <TBD: SAVE10 start instant> and end <TBD: SAVE10 end instant>\n    And registered shopper \"S1\" is signed in with a cart containing MUG-RED × 2\n\n  @E2E-HARBORCART-025-c @e2e @p3 @boundary\n  Scenario: SAVE10 applies from its start instant up to, but not including, its end instant (1 second before end)\n    When the clock is set to 1 second before end and S1 requests a quote for address \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with promotion code \"SAVE10\"\n    Then the quote shows discount $4.80, shipping $8.00, tax $3.20 and total $54.40"
+  },
+  {
+    "testName": "SAVE10 applies from its start instant up to, but not including, its end instant (exactly the end)",
+    "references": [
+      "BR-06",
+      "A-03"
+    ],
+    "gherkin": "Feature: SAVE10 applies from its start instant up to, but not including, its end instant (exactly the end)\n\n  Background:\n    Given the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\n    And the catalog contains MUG-RED (ACTIVE, $24.00)\n    And promotion SAVE10 has start <TBD: SAVE10 start instant> and end <TBD: SAVE10 end instant>\n    And registered shopper \"S1\" is signed in with a cart containing MUG-RED × 2\n\n  @E2E-HARBORCART-025-d @e2e @p3 @boundary\n  Scenario: SAVE10 applies from its start instant up to, but not including, its end instant (exactly the end)\n    When the clock is set to exactly the end and S1 requests a quote for address \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with promotion code \"SAVE10\"\n    Then the response is 422 with a reason for the rejected code"
+  },
+  {
+    "testName": "Cart line quantity must be a whole number from 1 to 10 (qty: 0)",
+    "references": [
+      "BR-03"
+    ],
+    "gherkin": "Feature: Cart line quantity must be a whole number from 1 to 10 (qty: 0)\n\n  Background:\n    Given the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\n    And the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\n    And registered shopper \"S1\" is signed in with a cart containing MUG-RED × 2\n\n  @E2E-HARBORCART-026-a @e2e @p2 @boundary @negative\n  Scenario: Cart line quantity must be a whole number from 1 to 10 (qty: 0)\n    When S1 sets the MUG-RED quantity to 0 through PUT /api/v1/cart/lines/MUG-RED with the current expectedRevision\n    Then the response is 422\n    And the cart shows MUG-RED × 2"
+  },
+  {
+    "testName": "Cart line quantity must be a whole number from 1 to 10 (qty: 1)",
+    "references": [
+      "BR-03"
+    ],
+    "gherkin": "Feature: Cart line quantity must be a whole number from 1 to 10 (qty: 1)\n\n  Background:\n    Given the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\n    And the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\n    And registered shopper \"S1\" is signed in with a cart containing MUG-RED × 2\n\n  @E2E-HARBORCART-026-b @e2e @p2 @boundary @negative\n  Scenario: Cart line quantity must be a whole number from 1 to 10 (qty: 1)\n    When S1 sets the MUG-RED quantity to 1 through PUT /api/v1/cart/lines/MUG-RED with the current expectedRevision\n    Then the response is 200\n    And the cart shows MUG-RED × 1"
+  },
+  {
+    "testName": "Cart line quantity must be a whole number from 1 to 10 (qty: 10)",
+    "references": [
+      "BR-03"
+    ],
+    "gherkin": "Feature: Cart line quantity must be a whole number from 1 to 10 (qty: 10)\n\n  Background:\n    Given the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\n    And the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\n    And registered shopper \"S1\" is signed in with a cart containing MUG-RED × 2\n\n  @E2E-HARBORCART-026-c @e2e @p2 @boundary @negative\n  Scenario: Cart line quantity must be a whole number from 1 to 10 (qty: 10)\n    When S1 sets the MUG-RED quantity to 10 through PUT /api/v1/cart/lines/MUG-RED with the current expectedRevision\n    Then the response is 200\n    And the cart shows MUG-RED × 10"
+  },
+  {
+    "testName": "Cart line quantity must be a whole number from 1 to 10 (qty: 11)",
+    "references": [
+      "BR-03"
+    ],
+    "gherkin": "Feature: Cart line quantity must be a whole number from 1 to 10 (qty: 11)\n\n  Background:\n    Given the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\n    And the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\n    And registered shopper \"S1\" is signed in with a cart containing MUG-RED × 2\n\n  @E2E-HARBORCART-026-d @e2e @p2 @boundary @negative\n  Scenario: Cart line quantity must be a whole number from 1 to 10 (qty: 11)\n    When S1 sets the MUG-RED quantity to 11 through PUT /api/v1/cart/lines/MUG-RED with the current expectedRevision\n    Then the response is 422\n    And the cart shows MUG-RED × 2"
+  },
+  {
+    "testName": "Cart line quantity must be a whole number from 1 to 10 (qty: 1.5)",
+    "references": [
+      "BR-03"
+    ],
+    "gherkin": "Feature: Cart line quantity must be a whole number from 1 to 10 (qty: 1.5)\n\n  Background:\n    Given the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\n    And the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\n    And registered shopper \"S1\" is signed in with a cart containing MUG-RED × 2\n\n  @E2E-HARBORCART-026-e @e2e @p2 @boundary @negative\n  Scenario: Cart line quantity must be a whole number from 1 to 10 (qty: 1.5)\n    When S1 sets the MUG-RED quantity to 1.5 through PUT /api/v1/cart/lines/MUG-RED with the current expectedRevision\n    Then the response is 422\n    And the cart shows MUG-RED × 2"
+  },
+  {
+    "testName": "Adding the same product twice merges into one cart line",
+    "references": [
+      "BR-03"
+    ],
+    "gherkin": "Feature: Adding the same product twice merges into one cart line\n\n  Background:\n    Given the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\n    And the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\n    And registered shopper \"S1\" is signed in with an empty cart\n\n  @E2E-HARBORCART-027 @e2e @p3 @edge-case\n  Scenario: Adding the same product twice merges into one cart line\n    When S1 adds MUG-RED × 2 from the product detail page\n    And S1 adds MUG-RED × 3 again from the search results\n    Then the cart shows a single MUG-RED line with quantity 5"
+  },
+  {
+    "testName": "Concurrent cart edits from two tabs do not lose updates",
+    "references": [
+      "BR-03",
+      "BR-04"
+    ],
+    "gherkin": "Feature: Concurrent cart edits from two tabs do not lose updates\n\n  Background:\n    Given the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\n    And the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\n    And registered shopper \"S1\" is signed in with a cart containing MUG-RED × 2 at revision r\n\n  @E2E-HARBORCART-028 @e2e @p3 @concurrency @edge-case\n  Scenario: Concurrent cart edits from two tabs do not lose updates\n    When S1, in tab A, sets MUG-RED quantity to 3 with expectedRevision r\n    Then the response is 200 and the cart revision advances\n    When S1, in tab B, sets MUG-RED quantity to 4 with the stale expectedRevision r\n    Then the response is 409\n    And the cart shows MUG-RED × 3"
+  },
+  {
+    "testName": "Cart is limited to 20 distinct SKUs",
+    "references": [
+      "BR-03"
+    ],
+    "gherkin": "Feature: Cart is limited to 20 distinct SKUs\n\n  Background:\n    Given the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\n    And the catalog contains 21 distinct ACTIVE SKUs X1–X21 <TBD: 21 SKU fixtures; the BRD defines only 3 ACTIVE SKUs>\n    And registered shopper \"S1\" is signed in with a cart containing X1–X20, each × 1\n\n  @E2E-HARBORCART-029 @e2e @p3 @boundary @negative\n  Scenario: Cart is limited to 20 distinct SKUs\n    When S1 adds X21 × 1 to the cart\n    Then the add is rejected with <TBD: status and error code for the 20-SKU limit>\n    And the cart still contains exactly X1–X20, each × 1"
+  },
+  {
+    "testName": "Search finds active products by name or SKU regardless of case",
+    "references": [
+      "BR-01"
+    ],
+    "gherkin": "Feature: Search finds active products by name or SKU regardless of case\n\n  Background:\n    Given the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\n    And the catalog contains MUG-RED, BAG-BLUE and GIFT-001 (ACTIVE) and OLD-HAT (INACTIVE)\n    And guest shopper \"G1\" opens the web app\n\n  @E2E-HARBORCART-030 @e2e @p2 @user-journey\n  Scenario: Search finds active products by name or SKU regardless of case\n    When G1 searches for \"mug-red\"\n    Then the results include MUG-RED\n    When G1 searches for MUG-RED's product name, as shown on its detail page, typed in upper case\n    Then the results include MUG-RED\n    When G1 searches for \"OLD-HAT\"\n    Then no results are returned\n    When G1 submits an empty search\n    Then the results are paginated, sorted by name then SKU, include MUG-RED, BAG-BLUE and GIFT-001, and do not include OLD-HAT"
+  },
+  {
+    "testName": "Inactive or unknown product has no detail page",
+    "references": [
+      "BR-02"
+    ],
+    "gherkin": "Feature: Inactive or unknown product has no detail page\n\n  Background:\n    Given the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\n    And the catalog contains OLD-HAT (INACTIVE, $12.00)\n    And guest shopper \"G1\" opens the web app\n\n  @E2E-HARBORCART-031 @e2e @p2 @negative\n  Scenario: Inactive or unknown product has no detail page\n    When G1 requests GET /api/v1/products/OLD-HAT\n    Then the response is 404\n    When G1 requests GET /api/v1/products/NO-SUCH-SKU\n    Then the response is 404\n    When G1 opens the product detail URL for OLD-HAT in the web app\n    Then no price or add-to-cart control is shown for OLD-HAT"
+  },
+  {
+    "testName": "Price change after adding to cart is shown for confirmation before payment",
+    "references": [
+      "BR-05",
+      "A-02"
+    ],
+    "gherkin": "Feature: Price change after adding to cart is shown for confirmation before payment\n\n  Background:\n    Given the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\n    And the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\n    And registered shopper \"S1\" is signed in with a cart containing MUG-RED × 2 displayed at $24.00\n\n  @E2E-HARBORCART-032 @e2e @p2 @user-journey @edge-case\n  Scenario: Price change after adding to cart is shown for confirmation before payment\n    When the MUG-RED price is changed to <TBD: new price> via <TBD: test hook to change a catalog price>\n    And S1 requests a quote for address \"Pat Shopper, 100 Harbor St, Boston, MA 02110\"\n    Then the quote uses the new unit price and S1 is shown the price change for confirmation before payment\n    When S1 confirms the changed price and pays with \"tok_approve\"\n    Then the order is CONFIRMED at the new unit price"
+  },
+  {
+    "testName": "Deactivated item in the cart fails the quote as unavailable",
+    "references": [
+      "BR-05"
+    ],
+    "gherkin": "Feature: Deactivated item in the cart fails the quote as unavailable\n\n  Background:\n    Given the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\n    And the catalog contains MUG-RED (ACTIVE, $24.00, stock 5) and OLD-HAT (INACTIVE, $12.00)\n    And registered shopper \"S1\" has a cart containing MUG-RED × 1 and OLD-HAT × 1, seeded via <TBD: test hook to seed a cart line for a SKU that later became INACTIVE>\n\n  @E2E-HARBORCART-033 @e2e @p2 @negative @edge-case\n  Scenario: Deactivated item in the cart fails the quote as unavailable\n    When S1 requests a quote for address \"Pat Shopper, 100 Harbor St, Boston, MA 02110\"\n    Then the response is 409 with code \"ITEM_UNAVAILABLE\"\n    And no quote is created and the test API shows no payment attempt for S1"
+  },
+  {
+    "testName": "Checkout address is validated field by field (name: empty)",
+    "references": [
+      "BR-10",
+      "A-01"
+    ],
+    "gherkin": "Feature: Checkout address is validated field by field (name: empty)\n\n  Background:\n    Given the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\n    And the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\n    And registered shopper \"S1\" is signed in with a cart containing MUG-RED × 2\n    And the valid address is \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with S1's email\n\n  @E2E-HARBORCART-034-a @e2e @p1 @negative @boundary\n  Scenario: Checkout address is validated field by field (name: empty)\n    When S1 requests a quote with the valid address except name set to \"\"\n    Then the response is 422 with a field error for name\n    And no quote is created\n    And S1 sees the error next to the name field\n    When S1 corrects name to its valid value and requests the quote again\n    Then the quote is created with total $59.50"
+  },
+  {
+    "testName": "Checkout address is validated field by field (address line 1: empty)",
+    "references": [
+      "BR-10",
+      "A-01"
+    ],
+    "gherkin": "Feature: Checkout address is validated field by field (address line 1: empty)\n\n  Background:\n    Given the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\n    And the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\n    And registered shopper \"S1\" is signed in with a cart containing MUG-RED × 2\n    And the valid address is \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with S1's email\n\n  @E2E-HARBORCART-034-b @e2e @p1 @negative @boundary\n  Scenario: Checkout address is validated field by field (address line 1: empty)\n    When S1 requests a quote with the valid address except address line 1 set to \"\"\n    Then the response is 422 with a field error for address line 1\n    And no quote is created\n    And S1 sees the error next to the address line 1 field\n    When S1 corrects address line 1 to its valid value and requests the quote again\n    Then the quote is created with total $59.50"
+  },
+  {
+    "testName": "Checkout address is validated field by field (city: empty)",
+    "references": [
+      "BR-10",
+      "A-01"
+    ],
+    "gherkin": "Feature: Checkout address is validated field by field (city: empty)\n\n  Background:\n    Given the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\n    And the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\n    And registered shopper \"S1\" is signed in with a cart containing MUG-RED × 2\n    And the valid address is \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with S1's email\n\n  @E2E-HARBORCART-034-c @e2e @p1 @negative @boundary\n  Scenario: Checkout address is validated field by field (city: empty)\n    When S1 requests a quote with the valid address except city set to \"\"\n    Then the response is 422 with a field error for city\n    And no quote is created\n    And S1 sees the error next to the city field\n    When S1 corrects city to its valid value and requests the quote again\n    Then the quote is created with total $59.50"
+  },
+  {
+    "testName": "Checkout address is validated field by field (state: HI)",
+    "references": [
+      "BR-10",
+      "A-01"
+    ],
+    "gherkin": "Feature: Checkout address is validated field by field (state: HI)\n\n  Background:\n    Given the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\n    And the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\n    And registered shopper \"S1\" is signed in with a cart containing MUG-RED × 2\n    And the valid address is \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with S1's email\n\n  @E2E-HARBORCART-034-d @e2e @p1 @negative @boundary\n  Scenario: Checkout address is validated field by field (state: HI)\n    When S1 requests a quote with the valid address except state set to \"HI\"\n    Then the response is 422 with a field error for state\n    And no quote is created\n    And S1 sees the error next to the state field\n    When S1 corrects state to its valid value and requests the quote again\n    Then the quote is created with total $59.50"
+  },
+  {
+    "testName": "Checkout address is validated field by field (state: AK)",
+    "references": [
+      "BR-10",
+      "A-01"
+    ],
+    "gherkin": "Feature: Checkout address is validated field by field (state: AK)\n\n  Background:\n    Given the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\n    And the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\n    And registered shopper \"S1\" is signed in with a cart containing MUG-RED × 2\n    And the valid address is \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with S1's email\n\n  @E2E-HARBORCART-034-e @e2e @p1 @negative @boundary\n  Scenario: Checkout address is validated field by field (state: AK)\n    When S1 requests a quote with the valid address except state set to \"AK\"\n    Then the response is 422 with a field error for state\n    And no quote is created\n    And S1 sees the error next to the state field\n    When S1 corrects state to its valid value and requests the quote again\n    Then the quote is created with total $59.50"
+  },
+  {
+    "testName": "Checkout address is validated field by field (state: Mass)",
+    "references": [
+      "BR-10",
+      "A-01"
+    ],
+    "gherkin": "Feature: Checkout address is validated field by field (state: Mass)\n\n  Background:\n    Given the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\n    And the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\n    And registered shopper \"S1\" is signed in with a cart containing MUG-RED × 2\n    And the valid address is \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with S1's email\n\n  @E2E-HARBORCART-034-f @e2e @p1 @negative @boundary\n  Scenario: Checkout address is validated field by field (state: Mass)\n    When S1 requests a quote with the valid address except state set to \"Mass\"\n    Then the response is 422 with a field error for state\n    And no quote is created\n    And S1 sees the error next to the state field\n    When S1 corrects state to its valid value and requests the quote again\n    Then the quote is created with total $59.50"
+  },
+  {
+    "testName": "Checkout address is validated field by field (ZIP: 0211)",
+    "references": [
+      "BR-10",
+      "A-01"
+    ],
+    "gherkin": "Feature: Checkout address is validated field by field (ZIP: 0211)\n\n  Background:\n    Given the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\n    And the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\n    And registered shopper \"S1\" is signed in with a cart containing MUG-RED × 2\n    And the valid address is \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with S1's email\n\n  @E2E-HARBORCART-034-g @e2e @p1 @negative @boundary\n  Scenario: Checkout address is validated field by field (ZIP: 0211)\n    When S1 requests a quote with the valid address except ZIP set to \"0211\"\n    Then the response is 422 with a field error for ZIP\n    And no quote is created\n    And S1 sees the error next to the ZIP field\n    When S1 corrects ZIP to its valid value and requests the quote again\n    Then the quote is created with total $59.50"
+  },
+  {
+    "testName": "Checkout address is validated field by field (ZIP: ABCDE)",
+    "references": [
+      "BR-10",
+      "A-01"
+    ],
+    "gherkin": "Feature: Checkout address is validated field by field (ZIP: ABCDE)\n\n  Background:\n    Given the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\n    And the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\n    And registered shopper \"S1\" is signed in with a cart containing MUG-RED × 2\n    And the valid address is \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with S1's email\n\n  @E2E-HARBORCART-034-h @e2e @p1 @negative @boundary\n  Scenario: Checkout address is validated field by field (ZIP: ABCDE)\n    When S1 requests a quote with the valid address except ZIP set to \"ABCDE\"\n    Then the response is 422 with a field error for ZIP\n    And no quote is created\n    And S1 sees the error next to the ZIP field\n    When S1 corrects ZIP to its valid value and requests the quote again\n    Then the quote is created with total $59.50"
+  },
+  {
+    "testName": "Checkout address is validated field by field (email: pat.example.test)",
+    "references": [
+      "BR-10",
+      "A-01"
+    ],
+    "gherkin": "Feature: Checkout address is validated field by field (email: pat.example.test)\n\n  Background:\n    Given the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\n    And the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\n    And registered shopper \"S1\" is signed in with a cart containing MUG-RED × 2\n    And the valid address is \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with S1's email\n\n  @E2E-HARBORCART-034-i @e2e @p1 @negative @boundary\n  Scenario: Checkout address is validated field by field (email: pat.example.test)\n    When S1 requests a quote with the valid address except email set to \"pat.example.test\"\n    Then the response is 422 with a field error for email\n    And no quote is created\n    And S1 sees the error next to the email field\n    When S1 corrects email to its valid value and requests the quote again\n    Then the quote is created with total $59.50"
+  },
+  {
+    "testName": "Checkout address is validated field by field (email: empty)",
+    "references": [
+      "BR-10",
+      "A-01"
+    ],
+    "gherkin": "Feature: Checkout address is validated field by field (email: empty)\n\n  Background:\n    Given the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\n    And the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\n    And registered shopper \"S1\" is signed in with a cart containing MUG-RED × 2\n    And the valid address is \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with S1's email\n\n  @E2E-HARBORCART-034-j @e2e @p1 @negative @boundary\n  Scenario: Checkout address is validated field by field (email: empty)\n    When S1 requests a quote with the valid address except email set to \"\"\n    Then the response is 422 with a field error for email\n    And no quote is created\n    And S1 sees the error next to the email field\n    When S1 corrects email to its valid value and requests the quote again\n    Then the quote is created with total $59.50"
+  },
+  {
+    "testName": "Keyboard-only shopper completes checkout and hears address errors announced",
+    "references": [
+      "NFR-04",
+      "BR-10"
+    ],
+    "gherkin": "Feature: Keyboard-only shopper completes checkout and hears address errors announced\n\n  Background:\n    Given the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\n    And the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\n    And guest shopper \"G1\" uses only the keyboard, with a screen reader running\n\n  @E2E-HARBORCART-035 @e2e @p2 @accessibility @user-journey\n  Scenario: Keyboard-only shopper completes checkout and hears address errors announced\n    When G1 searches for \"MUG-RED\", opens its details and adds quantity 1 to the cart using only the keyboard\n    Then keyboard focus is visible at every step and the cart shows MUG-RED × 1\n    When G1 reaches checkout by keyboard and submits the address form with ZIP \"ABCDE\"\n    Then the ZIP field error is announced by the screen reader and G1 can move focus to the ZIP field by keyboard\n    When G1 corrects the ZIP to \"02110\" and requests the quote\n    Then the quote shows merchandise $24.00, shipping $8.00, tax $2.00 and total $34.00\n    When G1 completes the sandbox card widget, which yields token \"tok_approve\", and places the order using only the keyboard\n    Then G1 reaches the order confirmation with an order number and total $34.00"
+  },
+  {
+    "testName": "Card details never reach HarborCart APIs or events",
+    "references": [
+      "BR-11",
+      "NFR-03",
+      "NFR-05"
+    ],
+    "gherkin": "Feature: Card details never reach HarborCart APIs or events\n\n  Background:\n    Given the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\n    And the catalog contains MUG-RED (ACTIVE, $24.00, stock 5)\n    And registered shopper \"S1\" is signed in with a cart containing MUG-RED × 1\n    And browser network capture and event capture are enabled\n\n  @E2E-HARBORCART-036 @e2e @p1 @security @cross-functional\n  Scenario: Card details never reach HarborCart APIs or events\n    When S1 checks out with address \"Pat Shopper, 100 Harbor St, Boston, MA 02110\", entering card details in the sandbox provider widget, which yields token \"tok_approve\"\n    Then S1 sees an order confirmation with total $34.00\n    And no captured request to /api/v1 contains the card number or CVV, and the order request carries only the payment token\n    And no /api/v1 response or page shown to S1 contains the card number or CVV\n    And event capture for the order contains no card number or CVV"
+  },
+  {
+    "testName": "Idempotency keys are scoped to the shopper who used them",
+    "references": [
+      "BR-12",
+      "BR-17"
+    ],
+    "gherkin": "Feature: Idempotency keys are scoped to the shopper who used them\n\n  Background:\n    Given the HarborCart test environment is reset (stock, orders, promotion redemptions, queues, payment sandbox)\n    And the catalog contains MUG-RED (ACTIVE, $24.00, stock 5) and GIFT-001 (ACTIVE, $15.00, stock 20)\n    And registered shopper \"S1\" has placed order O1 with Idempotency-Key K1 and \"tok_approve\"\n    And registered shopper \"S2\" is signed in with quote q2 for GIFT-001 × 1 at address \"Pat Shopper, 100 Harbor St, Boston, MA 02110\" with total $24.44\n\n  @E2E-HARBORCART-037 @e2e @p3 @security @edge-case\n  Scenario: Idempotency keys are scoped to the shopper who used them\n    When S2 requests GET /api/v1/checkout/requests/K1\n    Then the response does not reveal O1 or any of S1's order data\n    When S2 submits checkout for q2 with \"tok_approve\" and Idempotency-Key K1\n    Then the response is 201 with a new order owned by S2\n    And S1's order O1 is unchanged"
+  }
+]

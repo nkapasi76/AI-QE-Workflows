@@ -57,7 +57,10 @@ make_request() {
     # Ensure endpoint starts with /
     [[ "$endpoint" != /* ]] && endpoint="/$endpoint"
 
-    local url="${TESTRAIL_URL}${endpoint}"
+    # TestRail serves its API under /index.php?/api/v2/...
+    [[ "$endpoint" == /api/* ]] && endpoint="/index.php?${endpoint}"
+
+    local url="${TESTRAIL_URL%/}${endpoint}"
 
     while [[ $attempt -le $MAX_RETRIES ]]; do
         if [[ "$method" == "GET" ]]; then
@@ -126,7 +129,7 @@ fi
 
 check_env
 
-METHOD="${1^^}"  # Uppercase
+METHOD=$(echo "$1" | tr '[:lower:]' '[:upper:]')  # Uppercase (bash 3.2 compatible)
 ENDPOINT="$2"
 DATA="${3:-}"
 

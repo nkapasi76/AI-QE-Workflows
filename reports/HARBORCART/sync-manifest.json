@@ -1,0 +1,533 @@
+{
+  "runKey": "HARBORCART",
+  "agent": "Test Cases Creation - E2E Test Creator v3 (Docs)",
+  "agentVersion": "v3.1-docs",
+  "updatedAt": "2026-09-29T15:59:30.866Z",
+  "sources": [
+    "docs/input/harborcart-ecommerce/Ecommerce_BRD_Sample.md",
+    "docs/input/harborcart-ecommerce/Ecommerce_Architecture_Design_Sample.md"
+  ],
+  "scenarios": {
+    "E2E-HARBORCART-001": {
+      "testName": "Registered shopper buys mugs and a gift item with SAVE10 and receives confirmation",
+      "status": "Approved",
+      "priority": "p1",
+      "references": [
+        "BR-01",
+        "BR-02",
+        "BR-03",
+        "BR-06",
+        "BR-07",
+        "BR-08",
+        "BR-09",
+        "BR-10",
+        "BR-12",
+        "BR-13",
+        "BR-14",
+        "BR-15",
+        "BO-01"
+      ],
+      "openTbds": [],
+      "examplesRows": 0,
+      "testrailCaseIds": null,
+      "jiraKey": null
+    },
+    "E2E-HARBORCART-002": {
+      "testName": "Guest buys the last blue bag and later retrieves the order with a verification code",
+      "status": "Approved",
+      "priority": "p1",
+      "references": [
+        "BR-04",
+        "BR-07",
+        "BR-08",
+        "BR-12",
+        "BR-15",
+        "NFR-05"
+      ],
+      "openTbds": [],
+      "examplesRows": 0,
+      "testrailCaseIds": null,
+      "jiraKey": null
+    },
+    "E2E-HARBORCART-003": {
+      "testName": "Shopper cannot view or cancel another shopper's order",
+      "status": "Approved",
+      "priority": "p1",
+      "references": [
+        "BR-17",
+        "NFR-03"
+      ],
+      "openTbds": [],
+      "examplesRows": 0,
+      "testrailCaseIds": null,
+      "jiraKey": null
+    },
+    "E2E-HARBORCART-004": {
+      "testName": "Order history lists only the shopper's own orders, newest first",
+      "status": "Approved",
+      "priority": "p2",
+      "references": [
+        "BR-15",
+        "BR-17"
+      ],
+      "openTbds": [],
+      "examplesRows": 0,
+      "testrailCaseIds": null,
+      "jiraKey": null
+    },
+    "E2E-HARBORCART-005": {
+      "testName": "Support agent views a shopper's order through the audited support role",
+      "status": "Approved",
+      "priority": "p2",
+      "references": [
+        "BR-17",
+        "NFR-03"
+      ],
+      "openTbds": [
+        "<TBD: support role name and account provisioning>",
+        "<TBD: documented way to read support audit records>"
+      ],
+      "examplesRows": 0,
+      "testrailCaseIds": null,
+      "jiraKey": null
+    },
+    "E2E-HARBORCART-006": {
+      "testName": "Guest cart merges into the account cart at sign-in, capped at 10 per SKU",
+      "status": "Approved",
+      "priority": "p2",
+      "references": [
+        "BR-04"
+      ],
+      "openTbds": [],
+      "examplesRows": 0,
+      "testrailCaseIds": null,
+      "jiraKey": null
+    },
+    "E2E-HARBORCART-007": {
+      "testName": "Cart merge is rejected when the combined cart would exceed 20 SKUs",
+      "status": "Approved",
+      "priority": "p3",
+      "references": [
+        "BR-03",
+        "BR-04"
+      ],
+      "openTbds": [
+        "<TBD: 21 SKU fixtures; the BRD defines only 3 ACTIVE SKUs>"
+      ],
+      "examplesRows": 0,
+      "testrailCaseIds": null,
+      "jiraKey": null
+    },
+    "E2E-HARBORCART-008": {
+      "testName": "Declined payment releases reserved stock and creates no order",
+      "status": "Approved",
+      "priority": "p1",
+      "references": [
+        "BR-11",
+        "BR-13",
+        "BO-02"
+      ],
+      "openTbds": [],
+      "examplesRows": 0,
+      "testrailCaseIds": null,
+      "jiraKey": null
+    },
+    "E2E-HARBORCART-009": {
+      "testName": "Payment timeout stays pending until reconciliation, without a second charge",
+      "status": "Approved",
+      "priority": "p1",
+      "references": [
+        "BR-11",
+        "BR-12",
+        "BR-13",
+        "NFR-02",
+        "BO-03"
+      ],
+      "openTbds": [],
+      "examplesRows": 0,
+      "testrailCaseIds": null,
+      "jiraKey": null
+    },
+    "E2E-HARBORCART-010": {
+      "testName": "Double submit and browser refresh create one order and one charge",
+      "status": "Approved",
+      "priority": "p1",
+      "references": [
+        "BR-12",
+        "BO-03"
+      ],
+      "openTbds": [],
+      "examplesRows": 0,
+      "testrailCaseIds": null,
+      "jiraKey": null
+    },
+    "E2E-HARBORCART-011": {
+      "testName": "Reusing an idempotency key with a different order is rejected",
+      "status": "Approved",
+      "priority": "p1",
+      "references": [
+        "BR-12"
+      ],
+      "openTbds": [],
+      "examplesRows": 0,
+      "testrailCaseIds": null,
+      "jiraKey": null
+    },
+    "E2E-HARBORCART-012": {
+      "testName": "Two shoppers race for the last blue bag and exactly one wins",
+      "status": "Approved",
+      "priority": "p1",
+      "references": [
+        "BR-13",
+        "BO-02",
+        "NFR-05"
+      ],
+      "openTbds": [],
+      "examplesRows": 0,
+      "testrailCaseIds": null,
+      "jiraKey": null
+    },
+    "E2E-HARBORCART-013": {
+      "testName": "Ordering more than the available stock fails before any payment",
+      "status": "Approved",
+      "priority": "p1",
+      "references": [
+        "BR-13"
+      ],
+      "openTbds": [],
+      "examplesRows": 0,
+      "testrailCaseIds": null,
+      "jiraKey": null
+    },
+    "E2E-HARBORCART-014": {
+      "testName": "Quote is honored until expiry and refused after it without charging",
+      "status": "Approved",
+      "priority": "p1",
+      "references": [
+        "BR-09"
+      ],
+      "openTbds": [],
+      "examplesRows": 2,
+      "testrailCaseIds": null,
+      "jiraKey": null
+    },
+    "E2E-HARBORCART-015": {
+      "testName": "Changing the cart after quoting invalidates the quote",
+      "status": "Approved",
+      "priority": "p1",
+      "references": [
+        "BR-09",
+        "BR-07",
+        "BR-08"
+      ],
+      "openTbds": [],
+      "examplesRows": 0,
+      "testrailCaseIds": null,
+      "jiraKey": null
+    },
+    "E2E-HARBORCART-016": {
+      "testName": "Email outage does not reverse a confirmed order",
+      "status": "Approved",
+      "priority": "p2",
+      "references": [
+        "BR-14",
+        "NFR-02"
+      ],
+      "openTbds": [
+        "<TBD: test hook to put the sandbox email provider into a failure mode>"
+      ],
+      "examplesRows": 0,
+      "testrailCaseIds": null,
+      "jiraKey": null
+    },
+    "E2E-HARBORCART-017": {
+      "testName": "Cancelling a confirmed order voids payment and releases stock exactly once",
+      "status": "Approved",
+      "priority": "p1",
+      "references": [
+        "BR-16",
+        "BR-13",
+        "BR-14"
+      ],
+      "openTbds": [],
+      "examplesRows": 0,
+      "testrailCaseIds": null,
+      "jiraKey": null
+    },
+    "E2E-HARBORCART-018": {
+      "testName": "Cancellation is refused once fulfillment has started",
+      "status": "Approved",
+      "priority": "p2",
+      "references": [
+        "BR-16"
+      ],
+      "openTbds": [
+        "<TBD: test hook to advance fulfillment status>"
+      ],
+      "examplesRows": 2,
+      "testrailCaseIds": null,
+      "jiraKey": null
+    },
+    "E2E-HARBORCART-019": {
+      "testName": "Cancellation racing fulfillment start has exactly one winner",
+      "status": "Approved",
+      "priority": "p2",
+      "references": [
+        "BR-16"
+      ],
+      "openTbds": [
+        "<TBD: test hook to trigger fulfillment start>"
+      ],
+      "examplesRows": 0,
+      "testrailCaseIds": null,
+      "jiraKey": null
+    },
+    "E2E-HARBORCART-020": {
+      "testName": "Unresolved payment past reservation expiry never confirms an order without stock",
+      "status": "Approved",
+      "priority": "p2",
+      "references": [
+        "BR-11",
+        "BR-13",
+        "BO-02",
+        "NFR-02"
+      ],
+      "openTbds": [
+        "<TBD: reconciliation SLA and the sandbox inquiry result for tok_timeout>"
+      ],
+      "examplesRows": 0,
+      "testrailCaseIds": null,
+      "jiraKey": null
+    },
+    "E2E-HARBORCART-021": {
+      "testName": "SAVE10 discount is capped at $20.00 and the code is case-insensitive",
+      "status": "Approved",
+      "priority": "p2",
+      "references": [
+        "BR-06",
+        "BR-07",
+        "BR-08"
+      ],
+      "openTbds": [],
+      "examplesRows": 3,
+      "testrailCaseIds": null,
+      "jiraKey": null
+    },
+    "E2E-HARBORCART-022": {
+      "testName": "Shipping is free only when post-discount merchandise reaches $50.00",
+      "status": "Approved",
+      "priority": "p2",
+      "references": [
+        "BR-07",
+        "BR-08",
+        "BR-06"
+      ],
+      "openTbds": [],
+      "examplesRows": 3,
+      "testrailCaseIds": null,
+      "jiraKey": null
+    },
+    "E2E-HARBORCART-023": {
+      "testName": "Shipping is free at exactly $50.00 post-discount merchandise",
+      "status": "Approved",
+      "priority": "p2",
+      "references": [
+        "BR-07",
+        "BR-08"
+      ],
+      "openTbds": [
+        "<TBD: fixture for an exact $50.00 cart; not reachable with the BRD fixtures>"
+      ],
+      "examplesRows": 0,
+      "testrailCaseIds": null,
+      "jiraKey": null
+    },
+    "E2E-HARBORCART-024": {
+      "testName": "Invalid, expired or ineligible promotion code leaves totals unchanged",
+      "status": "Approved",
+      "priority": "p2",
+      "references": [
+        "BR-06"
+      ],
+      "openTbds": [],
+      "examplesRows": 3,
+      "testrailCaseIds": null,
+      "jiraKey": null
+    },
+    "E2E-HARBORCART-025": {
+      "testName": "SAVE10 applies from its start instant up to, but not including, its end instant",
+      "status": "Approved",
+      "priority": "p3",
+      "references": [
+        "BR-06",
+        "A-03"
+      ],
+      "openTbds": [
+        "<TBD: SAVE10 start instant>",
+        "<TBD: SAVE10 end instant>"
+      ],
+      "examplesRows": 4,
+      "testrailCaseIds": null,
+      "jiraKey": null
+    },
+    "E2E-HARBORCART-026": {
+      "testName": "Cart line quantity must be a whole number from 1 to 10",
+      "status": "Approved",
+      "priority": "p2",
+      "references": [
+        "BR-03"
+      ],
+      "openTbds": [],
+      "examplesRows": 5,
+      "testrailCaseIds": null,
+      "jiraKey": null
+    },
+    "E2E-HARBORCART-027": {
+      "testName": "Adding the same product twice merges into one cart line",
+      "status": "Approved",
+      "priority": "p3",
+      "references": [
+        "BR-03"
+      ],
+      "openTbds": [],
+      "examplesRows": 0,
+      "testrailCaseIds": null,
+      "jiraKey": null
+    },
+    "E2E-HARBORCART-028": {
+      "testName": "Concurrent cart edits from two tabs do not lose updates",
+      "status": "Approved",
+      "priority": "p3",
+      "references": [
+        "BR-03",
+        "BR-04"
+      ],
+      "openTbds": [],
+      "examplesRows": 0,
+      "testrailCaseIds": null,
+      "jiraKey": null
+    },
+    "E2E-HARBORCART-029": {
+      "testName": "Cart is limited to 20 distinct SKUs",
+      "status": "Approved",
+      "priority": "p3",
+      "references": [
+        "BR-03"
+      ],
+      "openTbds": [
+        "<TBD: 21 SKU fixtures; the BRD defines only 3 ACTIVE SKUs>",
+        "<TBD: status and error code for the 20-SKU limit>"
+      ],
+      "examplesRows": 0,
+      "testrailCaseIds": null,
+      "jiraKey": null
+    },
+    "E2E-HARBORCART-030": {
+      "testName": "Search finds active products by name or SKU regardless of case",
+      "status": "Approved",
+      "priority": "p2",
+      "references": [
+        "BR-01"
+      ],
+      "openTbds": [],
+      "examplesRows": 0,
+      "testrailCaseIds": null,
+      "jiraKey": null
+    },
+    "E2E-HARBORCART-031": {
+      "testName": "Inactive or unknown product has no detail page",
+      "status": "Approved",
+      "priority": "p2",
+      "references": [
+        "BR-02"
+      ],
+      "openTbds": [],
+      "examplesRows": 0,
+      "testrailCaseIds": null,
+      "jiraKey": null
+    },
+    "E2E-HARBORCART-032": {
+      "testName": "Price change after adding to cart is shown for confirmation before payment",
+      "status": "Approved",
+      "priority": "p2",
+      "references": [
+        "BR-05",
+        "A-02"
+      ],
+      "openTbds": [
+        "<TBD: new price>",
+        "<TBD: test hook to change a catalog price>"
+      ],
+      "examplesRows": 0,
+      "testrailCaseIds": null,
+      "jiraKey": null
+    },
+    "E2E-HARBORCART-033": {
+      "testName": "Deactivated item in the cart fails the quote as unavailable",
+      "status": "Approved",
+      "priority": "p2",
+      "references": [
+        "BR-05"
+      ],
+      "openTbds": [
+        "<TBD: test hook to seed a cart line for a SKU that later became INACTIVE>"
+      ],
+      "examplesRows": 0,
+      "testrailCaseIds": null,
+      "jiraKey": null
+    },
+    "E2E-HARBORCART-034": {
+      "testName": "Checkout address is validated field by field",
+      "status": "Approved",
+      "priority": "p1",
+      "references": [
+        "BR-10",
+        "A-01"
+      ],
+      "openTbds": [],
+      "examplesRows": 10,
+      "testrailCaseIds": null,
+      "jiraKey": null
+    },
+    "E2E-HARBORCART-035": {
+      "testName": "Keyboard-only shopper completes checkout and hears address errors announced",
+      "status": "Approved",
+      "priority": "p2",
+      "references": [
+        "NFR-04",
+        "BR-10"
+      ],
+      "openTbds": [],
+      "examplesRows": 0,
+      "testrailCaseIds": null,
+      "jiraKey": null
+    },
+    "E2E-HARBORCART-036": {
+      "testName": "Card details never reach HarborCart APIs or events",
+      "status": "Approved",
+      "priority": "p1",
+      "references": [
+        "BR-11",
+        "NFR-03",
+        "NFR-05"
+      ],
+      "openTbds": [],
+      "examplesRows": 0,
+      "testrailCaseIds": null,
+      "jiraKey": null
+    },
+    "E2E-HARBORCART-037": {
+      "testName": "Idempotency keys are scoped to the shopper who used them",
+      "status": "Approved",
+      "priority": "p3",
+      "references": [
+        "BR-12",
+        "BR-17"
+      ],
+      "openTbds": [],
+      "examplesRows": 0,
+      "testrailCaseIds": null,
+      "jiraKey": null
+    }
+  }
+}

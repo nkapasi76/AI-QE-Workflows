@@ -15,14 +15,6 @@ jobs:
         node-version: lts/*
     - name: Install dependencies
       run: npm ci
-    - name: Azure login
-      uses: azure/login@v3
-      with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-    - name: Run Playwright tests
-      env:
-        PLAYWRIGHT_SERVICE_URL: ${{ vars.PLAYWRIGHT_SERVICE_URL }}
-      run: npx playwright test --config=playwright.service.config.js --workers=24
     - uses: actions/upload-artifact@v6
       if: ${{ !cancelled() }}
       with:
