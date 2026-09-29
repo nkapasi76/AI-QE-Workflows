@@ -225,7 +225,7 @@ Search only the areas of the top risk components and features. Record the paths 
 
 | Repository | Where | How |
 | ---------- | ----- | --- |
-| This repo (QAOpsPlaywright) | `tests/**/*.spec.{js,ts}`, `feature/**/*.feature`, `spec/*.md`, `reports/*/test-plan-*.md`, `pageobjects*/` | `grep -ril "<feature\|endpoint\|page>"` on test titles, steps, and page objects |
+| This repo (AI-QE-Workflows) | `tests/**/*.spec.{js,ts}`, `feature/**/*.feature`, `spec/*.md`, `reports/*/test-plan-*.md`, `pageobjects*/` | `grep -ril "<feature\|endpoint\|page>"` on test titles, steps, and page objects |
 | sm-peeves (if present at `../sm-peeves/`) | `tests/integration/`, `tests/e2e/`, `tests/triggers/` | Titles in `describe`/`test` blocks |
 | sm-postman (if present at `../sm-postman/`) | `api/<domain>/*.json` | Request `name` fields and `test` scripts |
 | cypress-ui-automation (if present at `../cypress-ui-automation/`) | `cypress/**/*.{cy,spec}.ts` | `describe`/`it` titles |
